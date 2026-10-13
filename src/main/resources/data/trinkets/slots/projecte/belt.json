@@ -1,0 +1,7 @@
+{
+  "icon": "trinkets:container/slots/belt",
+  "order": -256,
+  "amount": 1,
+  "max_stack_size": 1,
+  "validator_predicates": ["trinkets:default"]
+}

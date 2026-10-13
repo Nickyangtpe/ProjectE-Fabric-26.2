@@ -1,0 +1,35 @@
+# Gradle
+.gradle/
+build/
+
+# Minecraft development runtime
+run/
+logs/
+crash-reports/
+eula.txt
+server.properties
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.classpath
+.project
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local build and diagnostic files
+*.log
+*.tsv
+*.csv
+error_summary.txt
+errors.txt
+
+# Temporary recovery/development files
+artifacts/
+.api-index/
+_quarantined_ai_skeleton/
+_deferred_integrations/

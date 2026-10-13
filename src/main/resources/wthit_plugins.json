@@ -1,0 +1,12 @@
+{
+  "projecte:emc_tooltip": {
+    "entrypoints": {
+      "client": "moze_intel.projecte.integration.wthit.PEWTHITPlugin"
+    },
+    "side": "client",
+    "required": {
+      "wthit": ">=20.0.0"
+    },
+    "defaultEnabled": true
+  }
+}

@@ -1,0 +1,21 @@
+package moze_intel.projecte.gameObjs.registration.impl;
+
+import moze_intel.projecte.gameObjs.registration.PEDeferredHolder;
+import moze_intel.projecte.utils.text.ILangEntry;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.sounds.SoundEvent;
+import net.minecraft.util.Util;
+
+public class SoundEventRegistryObject<SOUND extends SoundEvent>
+    extends PEDeferredHolder<SoundEvent, SOUND> implements ILangEntry {
+  private final String translationKey = Util.makeDescriptionId("sound_event", this.getId());
+
+  public SoundEventRegistryObject(ResourceKey<SoundEvent> key) {
+    super(key);
+  }
+
+  @Override
+  public String getTranslationKey() {
+    return this.translationKey;
+  }
+}
