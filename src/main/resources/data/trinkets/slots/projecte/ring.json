@@ -1,0 +1,7 @@
+{
+  "icon": "trinkets:container/slots/ring",
+  "order": -512,
+  "amount": 2,
+  "max_stack_size": 1,
+  "validator_predicates": ["trinkets:default"]
+}

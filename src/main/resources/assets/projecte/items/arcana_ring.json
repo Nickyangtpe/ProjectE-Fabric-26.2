@@ -1,0 +1,97 @@
+{
+  "model": {
+    "type": "minecraft:select",
+    "property": "minecraft:component",
+    "component": "projecte:arcana_mode",
+    "cases": [
+      {
+        "when": "zero",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:component",
+          "component": "projecte:active",
+          "cases": [
+            {
+              "when": true,
+              "model": {
+                "type": "minecraft:model",
+                "model": "projecte:item/arcana_zero_on"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "projecte:item/arcana_zero_off"
+          }
+        }
+      },
+      {
+        "when": "ignition",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:component",
+          "component": "projecte:active",
+          "cases": [
+            {
+              "when": true,
+              "model": {
+                "type": "minecraft:model",
+                "model": "projecte:item/arcana_ignition_on"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "projecte:item/arcana_ignition_off"
+          }
+        }
+      },
+      {
+        "when": "harvest",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:component",
+          "component": "projecte:active",
+          "cases": [
+            {
+              "when": true,
+              "model": {
+                "type": "minecraft:model",
+                "model": "projecte:item/arcana_harv_on"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "projecte:item/arcana_harv_off"
+          }
+        }
+      },
+      {
+        "when": "swrg",
+        "model": {
+          "type": "minecraft:select",
+          "property": "minecraft:component",
+          "component": "projecte:active",
+          "cases": [
+            {
+              "when": true,
+              "model": {
+                "type": "minecraft:model",
+                "model": "projecte:item/arcana_swrg_on"
+              }
+            }
+          ],
+          "fallback": {
+            "type": "minecraft:model",
+            "model": "projecte:item/arcana_swrg_off"
+          }
+        }
+      }
+    ],
+    "fallback": {
+      "type": "minecraft:model",
+      "model": "projecte:item/arcana_zero_off"
+    }
+  }
+}

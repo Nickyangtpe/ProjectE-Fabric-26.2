@@ -1,0 +1,6 @@
+accessWidener	v2	official
+accessible	method	net/minecraft/world/entity/animal/rabbit/Rabbit	setVariant	(Lnet/minecraft/world/entity/animal/rabbit/Rabbit$Variant;)V
+accessible	field	net/minecraft/world/item/AxeItem	STRIPPABLES	Ljava/util/Map;
+accessible field net/minecraft/world/item/ShovelItem FLATTENABLES Ljava/util/Map;
+accessible method net/minecraft/world/entity/ExperienceOrb setValue (I)V
+accessible method net/minecraft/world/level/block/state/BlockBehaviour propertiesCodec ()Lcom/mojang/serialization/codecs/RecordCodecBuilder;

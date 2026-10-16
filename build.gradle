@@ -1,0 +1,94 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
+	maven {
+		name = 'Fabric'
+		url = 'https://maven.fabricmc.net/'
+	}
+	mavenCentral()
+	maven {
+		name = 'Nucleoid'
+			url = 'https://maven.nucleoid.xyz/releases/'
+		}
+		maven {
+			name = 'Modrinth'
+			url = 'https://api.modrinth.com/maven'
+		}
+}
+
+loom {
+	accessWidenerPath = file("src/main/resources/projecte.accesswidener")
+}
+
+dependencies {
+	// To change the versions see the gradle.properties file.
+	// Minecraft 26.2 ships unobfuscated, so no mappings dependency is required.
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+		// JSR-305 annotations are referenced by the ported sources (package-level nullability).
+		compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+			// Optional accessory API. ProjectE's Trinkets bridge is isolated and activated only when installed.
+			compileOnly 'eu.pb4:trinkets:4.1.1+26.2'
+				// Optional Jade API, compiled against its published Minecraft 26.2 Fabric artifact.
+	compileOnly 'maven.modrinth:nvQzSEkH:ue8CO97w'
+				// Optional The One Probe API, compiled against its published Minecraft 26.2 Fabric artifact.
+	compileOnly 'maven.modrinth:Eyw0UxEx:v5Le1HIV'
+
+	// NeoForge bundled commons-math3; Fabric does not, so declare it explicitly.
+	implementation 'org.apache.commons:commons-math3:3.6.1'
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = 'UTF-8'
+	it.options.release = 25
+	// Show every diagnostic instead of stopping at the default 100.
+	it.options.compilerArgs.addAll(['-Xmaxerrs', '10000'])
+}
+
+java {
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	// LICENSE_ProjectE is already part of src/main/resources; avoid adding it twice.
+	duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+	// Preserve the optional WTHIT integration until a compatible Fabric 26.2 API is available.
+	from("vendor/wthit-classes")
+}
+
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			artifactId = project.archives_base_name
+			from components.java
+		}
+	}
+
+	repositories {
+	}
+}

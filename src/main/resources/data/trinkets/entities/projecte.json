@@ -1,0 +1,12 @@
+{
+  "entities": [
+    "minecraft:player"
+  ],
+  "slots": [
+    "projecte/ring",
+    "projecte/belt",
+    "projecte/necklace",
+    "projecte/klein_star",
+    "projecte/transmutation_tablet"
+  ]
+}

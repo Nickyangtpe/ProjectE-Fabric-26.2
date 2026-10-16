@@ -1,0 +1,38 @@
+{
+	"required": true,
+	"package": "moze_intel.projecte.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"mixins": [
+		"EntityAttachmentMigrationMixin",
+		"LivingEntityJumpMixin",
+		"ServerPlayerGameModeMixin",
+		"PrimedTntMixin",
+		"TntBlockMixin",
+		"CapabilityMixin$LevelMixin",
+		"CapabilityMixin$BlockEntityMixin",
+		"CapabilityMixin$EntityMixin",
+		"CapabilityMixin$ItemStackMixin",
+			"PotionBrewingAccessor",
+			"PotionBrewingMixAccessor",
+				"CraftingRemainderMixin",
+				"BlockPlaceContextAccessor",
+				"ItemEntityAccessor",
+				"FireworkRocketRecipeAccessor",
+				"FireworkStarRecipeAccessor",
+					"SmithingTrimRecipeAccessor",
+						"ArgumentTypeInfosAccessor",
+							"ItemStackConditionalAttributesMixin",
+							"LevelBlockSnapshotMixin",
+			"RecipeManagerConditionsMixin",
+			"SimpleJsonResourceReloadListenerConditionsMixin",
+			"ItemPropertiesZeroEnchantabilityMixin",
+			"ItemEntityPickupMixin"
+	],
+		"client": [
+			"RenderTypeAccessor",
+			"CameraFovMixin"
+		],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

@@ -1,0 +1,12 @@
+{
+  "comment": "Fabric 26.2 compatibility baselines for vanilla items whose recipe displays are not exposed consistently by the new recipe API.",
+  "values": {
+    "before": [
+      {
+        "type": "projecte:item",
+        "emc_value": 32,
+        "id": "minecraft:sugar"
+      }
+    ]
+  }
+}
