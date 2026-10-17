@@ -1,0 +1,8 @@
+{
+  "comment": "Copy this file into your mod at data/<your_mod_id>/emc/projecte.json",
+  "values": {
+    "your_mod_id:custom_item": 128,
+    "your_mod_id:rare_item": 4096,
+    "#your_mod_id:custom_items": 256
+  }
+}

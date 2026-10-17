@@ -60,6 +60,37 @@ ProjectE 是 Equivalent Exchange 2（EE2）的現代重製版，加入 EMC（Ene
 - Client GUI、tooltip、搜尋、快捷鍵與 rendering overlay
 - Fabric networking、Mixin、Access Widener、tags、配方、模型、貼圖、音效與語言檔
 
+## 其他模組直接提供 EMC
+
+其他 Fabric 模組不需要依賴 ProjectE API，也不需要玩家執行 `/projecte setemc`。只要在自己的模組 JAR 或 datapack 放置以下路徑即可：
+
+```text
+data/<你的模組 ID>/emc/*.json
+```
+
+最簡單的格式如下：
+
+```json
+{
+  "comment": "My Mod EMC values",
+  "values": {
+    "mymod:custom_item": 128,
+    "mymod:rare_item": 4096,
+    "#mymod:custom_items": 256
+  }
+}
+```
+
+`values` 的 key 可以是物品 ID 或 item tag；以 `#` 開頭代表 tag。EMC 必須是大於或等於 0 的整數。每個檔案可以使用任意檔名，且可以在同一個模組中放置多個檔案。資料會在伺服器啟動及 datapack reload 時自動載入，因此不需要手動設定指令。
+
+例如模組 `mymod` 的檔案應放在：
+
+```text
+data/mymod/emc/projecte.json
+```
+
+完整範例可參考 [`examples/emc/example.json`](examples/emc/example.json)。這個格式是 ProjectE 提供的公開、免 API 依賴格式，適合由其他模組直接內嵌到自己的 JAR 中。
+
 ## EMI、REI 與 JEI 配方相容性
 
 ProjectE 的一般合成配方使用 Minecraft 26.2 原生 recipe system，包含 shaped、shapeless、smithing、smelting 以及 ProjectE 的特殊配方。因此安裝相容於 Minecraft 26.2／Fabric 的 **EMI、REI 或 JEI** 後，可以直接查看 ProjectE 物品的合成方式與材料。

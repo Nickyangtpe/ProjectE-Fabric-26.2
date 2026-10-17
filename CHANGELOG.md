@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Added a dependency-free simple EMC datapack format for other mods: `data/<modid>/emc/*.json`.
+- Simple EMC files support item IDs, item tags, comments, multiple files, and automatic loading on server start or datapack reload.
+- Added `examples/emc/example.json` for mod authors.
+
 ## 1.2.0 — Modernization
 
 - Upgraded the public project version from 1.1.0 to 1.2.0.
