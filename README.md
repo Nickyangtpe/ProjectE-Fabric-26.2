@@ -44,7 +44,7 @@ ProjectE 是 Equivalent Exchange 2（EE2）的現代重製版，加入 EMC（Ene
 | Fabric API | 0.161.0+26.2 |
 | Java | 25 或更新版本 |
 | Fabric Loom | 1.17.21 |
-| 移植版本 | 1.3.0 |
+| 移植版本 | 1.4.0 |
 
 ## 主要內容
 
