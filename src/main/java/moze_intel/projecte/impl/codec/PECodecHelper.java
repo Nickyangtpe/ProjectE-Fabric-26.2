@@ -75,9 +75,15 @@ public class PECodecHelper implements IPECodecHelper {
               },
               handler -> {
                 try {
+                  // invokeExact requires the call-site return type to match the
+                  // reflected field exactly. ItemStackHandler.stacks is a
+                  // NonNullList, not merely a List; using the interface type
+                  // here makes the JVM reject the handle during player saves.
+                  NonNullList<ItemStack> stacks =
+                      (NonNullList<ItemStack>)
+                          HANDLER_STACK_FIELD.invokeExact((ItemStackHandler) handler);
                   return DataResult.success(
-                      (java.util.List<ItemStack>)
-                          HANDLER_STACK_FIELD.invokeExact((ItemStackHandler) handler));
+                      (java.util.List<ItemStack>) stacks);
                 } catch (Throwable t) {
                   return DataResult.error(t::getMessage);
                 }

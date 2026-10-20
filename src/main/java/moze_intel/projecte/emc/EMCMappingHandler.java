@@ -78,7 +78,13 @@ public final class EMCMappingHandler {
               ProjectEConfig.CONFIG_DIR.resolve("mapping_dump.json"), mappingCollector);
     }
 
-    boolean usePregenerated = MappingConfig.usePregenerated();
+    // A datapack EMC file must be allowed to override a stale pregenerated map. Otherwise a
+    // server with usePregenerated=true silently skips CustomEMCMapper and external mod EMC files.
+    boolean hasDatapackEmc =
+        !resourceManager
+            .listResources("emc", id -> id.getPath().endsWith(".json"))
+            .isEmpty();
+    boolean usePregenerated = MappingConfig.usePregenerated() && !hasDatapackEmc;
     Path pregeneratedEmcFile = ProjectEConfig.CONFIG_DIR.resolve("pregenerated_emc.json");
     Optional<Object2LongMap<ItemInfo>> readPregeneratedValues =
         PregeneratedEMC.read(registryAccess, pregeneratedEmcFile, usePregenerated);
