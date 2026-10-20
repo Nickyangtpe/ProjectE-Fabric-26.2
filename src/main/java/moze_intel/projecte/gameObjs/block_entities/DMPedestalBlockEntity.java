@@ -14,6 +14,7 @@ import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
@@ -176,35 +177,35 @@ public class DMPedestalBlockEntity extends EmcBlockEntity implements IDMPedestal
     if (newState != this.getActive()) {
       if (newState) {
         level.playSound(null, pos, PESoundEvents.CHARGE.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
-
-        for (int i = 0; i < level.getRandom().nextInt(35) + 10; i++) {
-          level.addParticle(
-              ParticleTypes.WITCH,
-              pos.getX() + 0.5 + level.getRandom().nextGaussian() * 0.13F,
-              pos.getY() + 1 + level.getRandom().nextGaussian() * 0.13F,
-              pos.getZ() + 0.5 + level.getRandom().nextGaussian() * 0.13F,
-              0.0,
-              0.0,
-              0.0);
-        }
+        spawnToggleParticles(level, pos, ParticleTypes.WITCH);
       } else {
         level.playSound(null, pos, PESoundEvents.UNCHARGE.get(), SoundSource.BLOCKS, 1.0F, 1.0F);
-
-        for (int i = 0; i < level.getRandom().nextInt(35) + 10; i++) {
-          level.addParticle(
-              ParticleTypes.SMOKE,
-              pos.getX() + 0.5 + level.getRandom().nextGaussian() * 0.13F,
-              pos.getY() + 1 + level.getRandom().nextGaussian() * 0.13F,
-              pos.getZ() + 0.5 + level.getRandom().nextGaussian() * 0.13F,
-              0.0,
-              0.0,
-              0.0);
-        }
+        spawnToggleParticles(level, pos, ParticleTypes.SMOKE);
       }
     }
 
     this.isActive = newState;
     this.markDirty(level, pos, true);
+  }
+
+  /**
+   * Sends the activation burst to clients when called on the logical server.
+   * Level#addParticle is client-local in the Fabric port, so using it from a
+   * server-side interaction silently loses the original ProjectE effect.
+   */
+  private static void spawnToggleParticles(
+      @NotNull Level level, @NotNull BlockPos pos, @NotNull net.minecraft.core.particles.ParticleOptions type) {
+    int count = level.getRandom().nextInt(35) + 10;
+    for (int i = 0; i < count; i++) {
+      double x = pos.getX() + 0.5 + level.getRandom().nextGaussian() * 0.13F;
+      double y = pos.getY() + 1 + level.getRandom().nextGaussian() * 0.13F;
+      double z = pos.getZ() + 0.5 + level.getRandom().nextGaussian() * 0.13F;
+      if (level.isClientSide()) {
+        level.addParticle(type, x, y, z, 0.0, 0.0, 0.0);
+      } else if (level instanceof ServerLevel serverLevel) {
+        serverLevel.sendParticles(type, x, y, z, 1, 0.0, 0.0, 0.0, 0.0);
+      }
+    }
   }
 
   public IItemHandlerModifiable getInventory() {
