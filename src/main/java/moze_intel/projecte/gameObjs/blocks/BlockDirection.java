@@ -1,9 +1,6 @@
 package moze_intel.projecte.gameObjs.blocks;
 
-import moze_intel.projecte.compat.capabilities.Capabilities;
-import moze_intel.projecte.compat.items.IItemHandler;
 import moze_intel.projecte.gameObjs.registries.PEItems;
-import moze_intel.projecte.utils.WorldHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.server.level.ServerLevel;
@@ -46,9 +43,7 @@ public abstract class BlockDirection extends Block {
       @NotNull ServerLevel level,
       @NotNull BlockPos pos,
       boolean isMoving) {
-    IItemHandler handler =
-        WorldHelper.getCapability(level, Capabilities.ItemHandler.BLOCK, pos, state, null, null);
-    WorldHelper.dropInventory(handler, level, pos);
+    level.updateNeighbourForOutputSignal(pos, state.getBlock());
     super.affectNeighborsAfterRemoval(state, level, pos, isMoving);
   }
 

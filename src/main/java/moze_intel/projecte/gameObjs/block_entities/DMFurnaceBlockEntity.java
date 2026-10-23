@@ -252,6 +252,11 @@ public class DMFurnaceBlockEntity extends EmcBlockEntity
     return this.outputInventory;
   }
 
+  @Override
+  protected List<IItemHandlerModifiable> getInventoriesForDrops() {
+    return List.of(this.inputInventory, this.fuelInv, this.outputInventory);
+  }
+
   public static void tickServer(
       Level level, BlockPos pos, BlockState state, DMFurnaceBlockEntity furnace) {
     boolean wasBurning = furnace.isLit();

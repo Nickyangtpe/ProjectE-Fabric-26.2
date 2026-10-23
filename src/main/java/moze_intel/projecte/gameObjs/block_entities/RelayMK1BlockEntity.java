@@ -1,5 +1,6 @@
 package moze_intel.projecte.gameObjs.block_entities;
 
+import java.util.List;
 import moze_intel.projecte.api.block_entity.IRelay;
 import moze_intel.projecte.api.capabilities.PECapabilities;
 import moze_intel.projecte.api.capabilities.block_entity.IEmcStorage;
@@ -115,6 +116,11 @@ public class RelayMK1BlockEntity extends EmcBlockEntity implements MenuProvider,
 
   public IItemHandler getOutput() {
     return this.output;
+  }
+
+  @Override
+  protected List<IItemHandlerModifiable> getInventoriesForDrops() {
+    return List.of(this.input, this.output);
   }
 
   @Override

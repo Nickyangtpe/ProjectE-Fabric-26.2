@@ -44,7 +44,6 @@ ProjectE 是 Equivalent Exchange 2（EE2）的現代重製版，加入 EMC（Ene
 | Fabric API | 0.161.0+26.2 |
 | Java | 25 或更新版本 |
 | Fabric Loom | 1.17.21 |
-| 移植版本 | 1.4.0 |
 
 ## 主要內容
 
@@ -90,6 +89,24 @@ data/mymod/emc/projecte.json
 ```
 
 完整範例可參考 [`examples/emc/example.json`](examples/emc/example.json)。這個格式是 ProjectE 提供的公開、免 API 依賴格式，適合由其他模組直接內嵌到自己的 JAR 中。
+
+### 自訂 EMC 指令與優先序
+
+伺服器的 `custom_emc.json` 與 `/projecte setemc` 設定會優先於資料包預設值及自動礦石／原礦黑名單。
+存在自訂設定時，重新映射會重新計算 EMC，避免被舊的預生成快取遮蓋。
+
+```text
+/projecte setemc 4096 minecraft:diamond
+/projecte setemc minecraft:diamond 4096
+/projecte setemc 256 #c:ores/iron
+/projecte removeemc minecraft:diamond
+/projecte resetemc minecraft:diamond
+```
+
+省略物品參數時，會使用主手物品；主手為空時使用副手。
+手持物品與帶 components 的物品參數會保留精確變體設定。
+`removeemc` 設為 0，`resetemc` 移除自訂設定並恢復資料包／自動映射結果。
+設定後執行 `/reload` 套用。
 
 ## EMI、REI 與 JEI 配方相容性
 
@@ -194,6 +211,33 @@ EMC 重映射、區塊卸載後磁碟重載及 NBT 存檔資料重建。
 
 測試用模組與 EMC 資料位於 `src/gametest/`，不會打包進正式的 ProjectE JAR。
 漏洞原因及修復流程見 [`docs/energy-condenser-fix.md`](docs/energy-condenser-fix.md)。
+
+### 破壞類物品的經驗掉落
+
+毀滅燧石、催化水晶及暗物質／紅物質工具的範圍、連鎖與多方塊挖掘，
+會在方塊成功移除後執行原生掉落回呼，保留礦石、刷怪籠、伏聆方塊等原本會掉落的經驗球。
+墨丘利之眼替換無 EMC 方塊並產生普通掉落時，也會保留對應的經驗。
+
+經驗量依方塊自己的實作與實際工具決定，遵守絲綢之觸、創造模式及方塊掉落遊戲規則。
+取消破壞、燃料不足或重複對已移除方塊操作不會產生經驗。
+
+`src/gametest/java/moze_intel/projecte/gametest/BlockBreakingGameTests.java`
+涵蓋這些情境；使用上面的 `runGameTest` 或 `clean build` 指令會一併執行。
+
+### 箱子自動化與破壞掉落
+
+煉金箱及 MK1／MK2 凝聚器提供原生容器與 Fabric `ItemStorage.SIDED` 介面，
+支援漏斗輸入／輸出、漏斗礦車抽取、投擲器輸入，以及使用 Fabric Transfer API 的外部設備。
+凝聚器保留原本的輸入／輸出限制，幽靈目標不會被抽取或掉落。
+
+箱子破壞時會掉落全部實際庫存並保留物品 components；
+收集器、繼電器、物質熔爐及基座也會在方塊實體移除前處理庫存掉落。
+輸出已滿或 Fabric 交易取消時保留原物品，方塊替換遭取消時恢復庫存與 EMC。
+
+`src/gametest/java/moze_intel/projecte/gametest/ChestAutomationGameTests.java`
+使用原生漏斗、投擲器、礦車、玩家破壞及放置取消事件驗證數量守恆。
+EMC 指令、tag、components、重映射及快取回歸位於 `EmcCommandGameTests.java`。
+兩組測試也會隨 `runGameTest` 或 `clean build` 執行。
 
 ## 原始碼結構
 

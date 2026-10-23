@@ -1,5 +1,6 @@
 package moze_intel.projecte.gameObjs.block_entities;
 
+import java.util.List;
 import moze_intel.projecte.api.block_entity.IRelay;
 import moze_intel.projecte.api.capabilities.PECapabilities;
 import moze_intel.projecte.api.capabilities.block_entity.IEmcStorage;
@@ -129,6 +130,12 @@ public class CollectorMK1BlockEntity extends EmcBlockEntity implements MenuProvi
 
   public IItemHandler getAux() {
     return this.auxSlots;
+  }
+
+  @Override
+  protected List<IItemHandlerModifiable> getInventoriesForDrops() {
+    // The lock slot is a ghost. Dropping must include stored inputs, not just extractable output.
+    return List.of(this.input, new RangedWrapper(this.auxSlots, 0, LOCK_SLOT));
   }
 
   protected int getInvSize() {

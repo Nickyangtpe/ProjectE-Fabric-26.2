@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 
 public final class BlockSnapshotCapture {
@@ -32,6 +33,24 @@ public final class BlockSnapshotCapture {
         }
       }
     }
+  }
+
+  public static boolean deferDrops(Level level, BlockPos pos, List<ItemStack> drops) {
+    Deque<BlockSnapshotCapture.Scope> scopes = ACTIVE_CAPTURES.get();
+    if (scopes.isEmpty()) {
+      ACTIVE_CAPTURES.remove();
+      return false;
+    }
+    for (Scope scope : scopes) {
+      if (scope.level == level) {
+        BlockSnapshot snapshot = scope.snapshots.get(pos);
+        if (snapshot != null) {
+          snapshot.deferDrops(drops);
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   public static final class Scope implements AutoCloseable {

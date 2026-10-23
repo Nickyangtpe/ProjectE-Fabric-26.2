@@ -24,6 +24,7 @@ import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
 import moze_intel.projecte.gameObjs.registries.PESoundEvents;
 import moze_intel.projecte.mixin.BlockPlaceContextAccessor;
 import moze_intel.projecte.utils.Constants;
+import moze_intel.projecte.utils.ExperienceDropTarget;
 import moze_intel.projecte.utils.ItemHelper;
 import moze_intel.projecte.utils.PlayerHelper;
 import moze_intel.projecte.utils.WorldHelper;
@@ -52,7 +53,6 @@ import net.minecraft.world.item.component.ItemContainerContents;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
@@ -137,6 +137,19 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
   }
 
   private InteractionResult formBlocks(
+      ItemStack eye,
+      Player player,
+      InteractionHand hand,
+      Level level,
+      BlockPos startingPos,
+      @Nullable Direction facing) {
+    try (ExperienceDropTarget.Scope ignored =
+        ExperienceDropTarget.at(level, Vec3.atLowerCornerOf(startingPos))) {
+      return formBlocksAndCollectLoot(eye, player, hand, level, startingPos, facing);
+    }
+  }
+
+  private InteractionResult formBlocksAndCollectLoot(
       ItemStack eye,
       Player player,
       InteractionHand hand,
@@ -420,8 +433,8 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
           emcHolder.insertEmc(replacement, oldEMC - newEMC, IEmcStorage.EmcAction.EXECUTE);
         } else if (oldEMC != newEMC) {
           if (oldEMC == 0L) {
-            drops.addAll(
-                Block.getDrops(oldState, (ServerLevel) level, placePos, null, player, eye));
+            WorldHelper.collectBlockDrops(
+                oldState, (ServerLevel) level, placePos, null, player, eye, drops);
           }
 
           emcHolder.extractEmc(replacement, newEMC - oldEMC, IEmcStorage.EmcAction.EXECUTE);

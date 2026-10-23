@@ -1,5 +1,6 @@
 package moze_intel.projecte.gameObjs.block_entities;
 
+import java.util.List;
 import moze_intel.projecte.api.ItemInfo;
 import moze_intel.projecte.api.capabilities.block_entity.IEmcStorage;
 import moze_intel.projecte.api.event.PlayerAttemptCondenserSetEvent;
@@ -7,8 +8,10 @@ import moze_intel.projecte.api.proxy.IEMCProxy;
 import moze_intel.projecte.compat.capabilities.ICapabilityProvider;
 import moze_intel.projecte.compat.common.NeoForge;
 import moze_intel.projecte.compat.items.IItemHandler;
+import moze_intel.projecte.compat.items.IItemHandlerModifiable;
 import moze_intel.projecte.compat.items.ItemHandlerHelper;
 import moze_intel.projecte.compat.items.ItemStackHandler;
+import moze_intel.projecte.compat.items.wrapper.CombinedInvWrapper;
 import moze_intel.projecte.emc.EMCMappingHandler;
 import moze_intel.projecte.gameObjs.container.CondenserContainer;
 import moze_intel.projecte.gameObjs.container.slots.SlotPredicates;
@@ -36,6 +39,10 @@ public class CondenserBlockEntity extends EmcChestBlockEntity {
       INVENTORY_PROVIDER = (condenser, side) -> condenser.automationInventory;
   protected final ItemStackHandler inputInventory = this.createInput();
   private final ItemStackHandler outputInventory = this.createOutput();
+  private final IItemHandlerModifiable containerInventory =
+      this.inputInventory == this.outputInventory
+          ? this.inputInventory
+          : new CombinedInvWrapper(this.inputInventory, this.outputInventory);
   @Nullable private ItemInfo lockInfo;
   private boolean isAcceptingEmc;
   public long displayEmc;
@@ -77,6 +84,24 @@ public class CondenserBlockEntity extends EmcChestBlockEntity {
 
   public ItemStackHandler getOutput() {
     return this.outputInventory;
+  }
+
+  @Override
+  protected IItemHandlerModifiable getContainerInventory() {
+    return this.containerInventory;
+  }
+
+  @Override
+  protected IItemHandler getAutomationInventory(@Nullable Direction side) {
+    return this.automationInventory;
+  }
+
+  @Override
+  protected List<IItemHandlerModifiable> getInventoriesForDrops() {
+    // MK1 shares its input/output inventory. The target is a ghost, not a stored item.
+    return this.inputInventory == this.outputInventory
+        ? List.of(this.inputInventory)
+        : List.of(this.inputInventory, this.outputInventory);
   }
 
   protected ItemStackHandler createInput() {

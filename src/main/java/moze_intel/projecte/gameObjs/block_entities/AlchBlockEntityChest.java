@@ -1,9 +1,11 @@
 package moze_intel.projecte.gameObjs.block_entities;
 
+import java.util.List;
 import moze_intel.projecte.api.capabilities.PECapabilities;
 import moze_intel.projecte.api.capabilities.item.IAlchChestItem;
 import moze_intel.projecte.compat.capabilities.ICapabilityProvider;
 import moze_intel.projecte.compat.items.IItemHandler;
+import moze_intel.projecte.compat.items.IItemHandlerModifiable;
 import moze_intel.projecte.gameObjs.container.AlchChestContainer;
 import moze_intel.projecte.gameObjs.registries.PEBlockEntityTypes;
 import moze_intel.projecte.gameObjs.registries.PEBlocks;
@@ -107,6 +109,16 @@ public class AlchBlockEntityChest extends EmcChestBlockEntity {
 
   public IItemHandler getInventory() {
     return this.inventory;
+  }
+
+  @Override
+  protected IItemHandlerModifiable getContainerInventory() {
+    return this.inventory;
+  }
+
+  @Override
+  protected List<IItemHandlerModifiable> getInventoriesForDrops() {
+    return List.of(this.inventory);
   }
 
   @NotNull

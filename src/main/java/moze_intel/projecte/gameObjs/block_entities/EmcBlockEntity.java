@@ -5,7 +5,9 @@ import java.util.List;
 import moze_intel.projecte.api.block_entity.BaseEmcBlockEntity;
 import moze_intel.projecte.api.capabilities.PECapabilities;
 import moze_intel.projecte.api.capabilities.block_entity.IEmcStorage;
+import moze_intel.projecte.compat.items.IItemHandlerModifiable;
 import moze_intel.projecte.compat.items.ItemStackHandler;
+import moze_intel.projecte.compat.util.BlockSnapshotCapture;
 import moze_intel.projecte.gameObjs.registration.impl.BlockEntityTypeRegistryObject;
 import moze_intel.projecte.utils.Constants;
 import moze_intel.projecte.utils.ItemHelper;
@@ -16,10 +18,13 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.core.HolderLookup.Provider;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Range;
 
@@ -41,6 +46,33 @@ public abstract class EmcBlockEntity extends BaseEmcBlockEntity {
       @Range(from = 1L, to = Long.MAX_VALUE) long maxAmount) {
     super(type.get(), pos, state);
     this.setMaximumEMC(maxAmount);
+  }
+
+  protected List<IItemHandlerModifiable> getInventoriesForDrops() {
+    return List.of();
+  }
+
+  @Override
+  public void preRemoveSideEffects(BlockPos pos, BlockState state) {
+    if (this.level instanceof ServerLevel serverLevel && !this.isRemoved()) {
+      List<ItemStack> drops = new ArrayList<>();
+      for (IItemHandlerModifiable inventory : this.getInventoriesForDrops()) {
+        for (int slot = 0; slot < inventory.getSlots(); slot++) {
+          ItemStack stack = inventory.getStackInSlot(slot);
+          if (!stack.isEmpty()) {
+            drops.add(stack.copy());
+            inventory.setStackInSlot(slot, ItemStack.EMPTY);
+          }
+        }
+      }
+      // Removed block entities cannot be queried from affectNeighborsAfterRemoval.
+      // Snapshot replacements defer these drops until the placement event succeeds.
+      if (!BlockSnapshotCapture.deferDrops(serverLevel, pos, drops)) {
+        WorldHelper.createLootDrop(drops, serverLevel, Vec3.atCenterOf(pos));
+      }
+    }
+    // Native Container handling now sees an empty inventory, so contents drop only once.
+    super.preRemoveSideEffects(pos, state);
   }
 
   protected void updateComparators(@NotNull Level level, @NotNull BlockPos pos) {

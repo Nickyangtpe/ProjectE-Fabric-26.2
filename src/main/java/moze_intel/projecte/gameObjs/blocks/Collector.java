@@ -19,7 +19,6 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -135,21 +134,5 @@ public class Collector extends BlockDirection implements PEEntityBlock<Collector
         ? MathUtils.scaleToRedstone(
             emcHolder.getStoredEmc(charging), emcHolder.getMaximumEmc(charging))
         : MathUtils.scaleToRedstone(collector.getStoredEmc(), collector.getEmcToNextGoal());
-  }
-
-  @Deprecated
-  @Override
-  protected void affectNeighborsAfterRemoval(
-      @NotNull BlockState state,
-      @NotNull ServerLevel level,
-      @NotNull BlockPos pos,
-      boolean isMoving) {
-    CollectorMK1BlockEntity ent =
-        WorldHelper.getBlockEntity(CollectorMK1BlockEntity.class, level, pos);
-    if (ent != null) {
-      ent.clearLocked();
-    }
-
-    super.affectNeighborsAfterRemoval(state, level, pos, isMoving);
   }
 }

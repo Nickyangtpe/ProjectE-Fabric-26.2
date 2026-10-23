@@ -2,7 +2,6 @@ package moze_intel.projecte.gameObjs.blocks;
 
 import com.mojang.serialization.MapCodec;
 import moze_intel.projecte.compat.capabilities.Capabilities;
-import moze_intel.projecte.compat.items.IItemHandler;
 import moze_intel.projecte.compat.items.ItemHandlerHelper;
 import moze_intel.projecte.gameObjs.EnumMatterType;
 import moze_intel.projecte.gameObjs.block_entities.DMFurnaceBlockEntity;
@@ -13,7 +12,6 @@ import moze_intel.projecte.gameObjs.registries.PEBlockTypes;
 import moze_intel.projecte.utils.WorldHelper;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.AbstractFurnaceBlock;
@@ -52,15 +50,6 @@ public class MatterFurnace extends AbstractFurnaceBlock
         ContainerTypeDeferredRegister.openMenu(player, furnace, pos);
       }
     }
-  }
-
-  @Deprecated
-  protected void affectNeighborsAfterRemoval(
-      BlockState state, @NotNull ServerLevel level, @NotNull BlockPos pos, boolean isMoving) {
-    IItemHandler handler =
-        WorldHelper.getCapability(level, Capabilities.ItemHandler.BLOCK, pos, state, null, null);
-    WorldHelper.dropInventory(handler, level, pos);
-    super.affectNeighborsAfterRemoval(state, level, pos, isMoving);
   }
 
   @Deprecated

@@ -2,10 +2,15 @@
   "schemaVersion": 1,
   "id": "projecte_condenser_tests",
   "version": "1.0.0",
-  "name": "ProjectE Energy Condenser Regression Tests",
+  "name": "ProjectE Regression Tests",
   "environment": "*",
   "entrypoints": {
-    "fabric-gametest": ["moze_intel.projecte.gametest.CondenserGameTests"]
+    "fabric-gametest": [
+      "moze_intel.projecte.gametest.CondenserGameTests",
+      "moze_intel.projecte.gametest.BlockBreakingGameTests",
+      "moze_intel.projecte.gametest.EmcCommandGameTests",
+      "moze_intel.projecte.gametest.ChestAutomationGameTests"
+    ]
   },
   "depends": {
     "projecte": "*",

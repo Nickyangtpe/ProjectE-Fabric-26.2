@@ -112,7 +112,7 @@ public class Pedestal extends Block
   @Deprecated
   protected void affectNeighborsAfterRemoval(
       BlockState state, @NotNull ServerLevel level, @NotNull BlockPos pos, boolean isMoving) {
-    this.dropItem(level, pos);
+    level.updateNeighbourForOutputSignal(pos, state.getBlock());
     super.affectNeighborsAfterRemoval(state, level, pos, isMoving);
   }
 

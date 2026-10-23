@@ -18,8 +18,9 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Item.Properties;
 import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
 public class DestructionCatalyst extends ItemPE implements IItemCharge, IBarHelper {
@@ -46,6 +47,7 @@ public class DestructionCatalyst extends ItemPE implements IItemCharge, IBarHelp
     int numRows = this.calculateDepthFromCharge(stack);
     boolean hasAction = false;
     List<ItemStack> drops = new ArrayList<>();
+    Vec3 dropPosition = Vec3.atLowerCornerOf(ctx.getClickedPos());
 
     for (BlockPos pos :
         WorldHelper.getPositionsInBox(
@@ -61,16 +63,12 @@ public class DestructionCatalyst extends ItemPE implements IItemCharge, IBarHelp
           hasAction = true;
           pos = pos.immutable();
           if (PlayerHelper.hasBreakPermission((ServerPlayer) player, level, pos)) {
-            List<ItemStack> list =
-                Block.getDrops(
-                    state,
-                    (ServerLevel) level,
-                    pos,
-                    WorldHelper.getBlockEntity(level, pos),
-                    player,
-                    stack);
-            drops.addAll(list);
-            level.removeBlock(pos, false);
+            BlockEntity blockEntity = WorldHelper.getBlockEntity(level, pos);
+            if (!level.removeBlock(pos, false)) {
+              continue;
+            }
+            WorldHelper.collectBlockDrops(
+                state, (ServerLevel) level, pos, blockEntity, player, stack, drops, dropPosition);
             if (level.getRandom().nextInt(8) == 0) {
               ((ServerLevel) level)
                   .sendParticles(
@@ -92,7 +90,7 @@ public class DestructionCatalyst extends ItemPE implements IItemCharge, IBarHelp
     }
 
     if (hasAction) {
-      WorldHelper.createLootDrop(drops, level, ctx.getClickedPos());
+      WorldHelper.createLootDrop(drops, level, dropPosition);
       level.playSound(
           null,
           player.getX(),

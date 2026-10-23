@@ -102,6 +102,39 @@ public final class WorldHelper {
     AGE_PROPERTIES.clear();
   }
 
+  /**
+   * Collects item loot and runs native after-break effects for a successfully removed block.
+   * Callers must capture the state and block entity before removing or replacing the block.
+   * Native experience awards follow the active collected-loot destination when one is set.
+   */
+  public static void collectBlockDrops(
+      BlockState state,
+      ServerLevel level,
+      BlockPos pos,
+      @Nullable BlockEntity blockEntity,
+      Player player,
+      ItemStack tool,
+      List<ItemStack> drops) {
+    drops.addAll(Block.getDrops(state, level, pos, blockEntity, player, tool));
+    // getDrops only evaluates item loot. Ores, spawners, sculk and modded blocks
+    // produce experience through this callback, including Silk Touch and game rules.
+    state.spawnAfterBreak(level, pos, tool, !player.preventsBlockDrops());
+  }
+
+  public static void collectBlockDrops(
+      BlockState state,
+      ServerLevel level,
+      BlockPos pos,
+      @Nullable BlockEntity blockEntity,
+      Player player,
+      ItemStack tool,
+      List<ItemStack> drops,
+      Vec3 dropPosition) {
+    try (ExperienceDropTarget.Scope ignored = ExperienceDropTarget.at(level, dropPosition)) {
+      collectBlockDrops(state, level, pos, blockEntity, player, tool, drops);
+    }
+  }
+
   public static void createLootDrop(List<ItemStack> drops, Level level, BlockPos pos) {
     createLootDrop(drops, level, pos.getX(), pos.getY(), pos.getZ());
   }
@@ -629,9 +662,8 @@ public final class WorldHelper {
       if (level.destroyBlock(pos, false, player, 512)) {
         block.destroy(level, pos, state);
         player.awardStat(Stats.BLOCK_MINED.get(block));
-        currentDrops.addAll(
-            Block.getDrops(
-                state, (ServerLevel) level, pos, targetInfo.blockEntity(), player, stack));
+        collectBlockDrops(
+            state, (ServerLevel) level, pos, targetInfo.blockEntity(), player, stack, currentDrops);
         if (++numMined >= 250) {
           break;
         }

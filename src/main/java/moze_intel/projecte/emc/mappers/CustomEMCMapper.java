@@ -34,6 +34,8 @@ public class CustomEMCMapper implements IEMCMapper<NormalizedSimpleStack, Long> 
       ReloadableServerResources serverResources,
       RegistryAccess registryAccess,
       ResourceManager resourceManager) {
+    // Mods/datapacks provide defaults; the server's custom_emc.json and commands win.
+    loadSimpleDatapackValues(mapper, resourceManager);
     Iterator<Entry<NSSItem>> iterator =
         Object2LongSortedMaps.fastIterator(CustomEMCParser.currentEntries.entries());
 
@@ -44,8 +46,6 @@ public class CustomEMCMapper implements IEMCMapper<NormalizedSimpleStack, Long> 
       PECore.debugLog("Adding custom EMC value for {}: {}", item, emc);
       item.forSelfAndEachElement(mapper, emc, IMappingCollector::setValueBefore);
     }
-
-    loadSimpleDatapackValues(mapper, resourceManager);
   }
 
   /**

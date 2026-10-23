@@ -1,22 +1,133 @@
 package moze_intel.projecte.gameObjs.block_entities;
 
+import moze_intel.projecte.compat.items.IItemHandler;
+import moze_intel.projecte.compat.items.IItemHandlerModifiable;
 import moze_intel.projecte.gameObjs.container.EmcChestBlockEntityContainer;
 import moze_intel.projecte.gameObjs.registration.impl.BlockEntityTypeRegistryObject;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.Container;
 import net.minecraft.world.MenuProvider;
+import net.minecraft.world.WorldlyContainer;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.ChestLidController;
 import net.minecraft.world.level.block.entity.ContainerOpenersCounter;
 import net.minecraft.world.level.block.entity.LidBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Range;
 
 public abstract class EmcChestBlockEntity extends EmcBlockEntity
-    implements LidBlockEntity, MenuProvider {
+    implements LidBlockEntity, MenuProvider, WorldlyContainer {
+  protected abstract IItemHandlerModifiable getContainerInventory();
+
+  protected IItemHandler getAutomationInventory(@Nullable Direction side) {
+    return getContainerInventory();
+  }
+
+  @Override
+  public int getContainerSize() {
+    return getContainerInventory().getSlots();
+  }
+
+  @Override
+  public boolean isEmpty() {
+    for (int slot = 0; slot < getContainerSize(); slot++) {
+      if (!getItem(slot).isEmpty()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  @Override
+  public ItemStack getItem(int slot) {
+    return getContainerInventory().getStackInSlot(slot);
+  }
+
+  @Override
+  public ItemStack removeItem(int slot, int amount) {
+    if (amount <= 0) {
+      return ItemStack.EMPTY;
+    }
+    // Native hoppers retain this stack reference and restore its count if the target is full.
+    // Splitting in place preserves that rollback, unlike IItemHandler's copy-on-extraction.
+    ItemStack stack = getItem(slot);
+    ItemStack removed = stack.split(amount);
+    if (!removed.isEmpty()) {
+      getContainerInventory().setStackInSlot(slot, stack.isEmpty() ? ItemStack.EMPTY : stack);
+    }
+    return removed;
+  }
+
+  @Override
+  public ItemStack removeItemNoUpdate(int slot) {
+    ItemStack result = getItem(slot);
+    getContainerInventory().setStackInSlot(slot, ItemStack.EMPTY);
+    return result;
+  }
+
+  @Override
+  public void setItem(int slot, ItemStack stack) {
+    int limit = Math.min(getContainerInventory().getSlotLimit(slot), stack.getMaxStackSize());
+    getContainerInventory().setStackInSlot(
+        slot, stack.getCount() > limit ? stack.copyWithCount(limit) : stack);
+  }
+
+  @Override
+  public void clearContent() {
+    for (int slot = 0; slot < getContainerSize(); slot++) {
+      getContainerInventory().setStackInSlot(slot, ItemStack.EMPTY);
+    }
+  }
+
+  @Override
+  public boolean stillValid(Player player) {
+    return Container.stillValidBlockEntity(this, player);
+  }
+
+  private boolean canInsert(int slot, ItemStack stack, @Nullable Direction side) {
+    return !isRemoved()
+        && !stack.isEmpty()
+        && getAutomationInventory(side).insertItem(slot, stack.copyWithCount(1), true).isEmpty();
+  }
+
+  private boolean canExtract(int slot, ItemStack stack, @Nullable Direction side) {
+    return !isRemoved()
+        && !stack.isEmpty()
+        && !getAutomationInventory(side).extractItem(slot, 1, true).isEmpty();
+  }
+
+  @Override
+  public boolean canPlaceItem(int slot, ItemStack stack) {
+    return canInsert(slot, stack, null);
+  }
+
+  @Override
+  public boolean canTakeItem(Container target, int slot, ItemStack stack) {
+    return canExtract(slot, stack, null);
+  }
+
+  @Override
+  public int[] getSlotsForFace(Direction side) {
+    return java.util.stream.IntStream.range(0, getContainerSize()).toArray();
+  }
+
+  @Override
+  public boolean canPlaceItemThroughFace(int slot, ItemStack stack, Direction side) {
+    return canInsert(slot, stack, side);
+  }
+
+  @Override
+  public boolean canTakeItemThroughFace(int slot, ItemStack stack, Direction side) {
+    return canExtract(slot, stack, side);
+  }
+
   private final ContainerOpenersCounter openersCounter =
       new ContainerOpenersCounter() {
         protected void onOpen(

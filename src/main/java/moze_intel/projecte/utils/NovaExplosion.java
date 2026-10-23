@@ -212,16 +212,19 @@ public class NovaExplosion implements Explosion {
   private void interactWithBlocks(List<BlockPos> targetBlocks) {
     NonNullList<ItemStack> allDrops = NonNullList.create();
     Util.shuffle(targetBlocks, this.level.getRandom());
+    LivingEntity placer = this.getIndirectSourceEntity();
+    Vec3 dropPosition = placer == null ? this.center : placer.position();
 
-    for (BlockPos pos : targetBlocks) {
-      this.level
-          .getBlockState(pos)
-          .onExplosionHit(this.level, pos, this, (stack, position) -> allDrops.add(stack));
+    try (ExperienceDropTarget.Scope ignored =
+        ExperienceDropTarget.at(this.level, dropPosition)) {
+      for (BlockPos pos : targetBlocks) {
+        this.level
+            .getBlockState(pos)
+            .onExplosionHit(this.level, pos, this, (stack, position) -> allDrops.add(stack));
+      }
     }
 
-    LivingEntity placer = this.getIndirectSourceEntity();
-    WorldHelper.createLootDrop(
-        allDrops, this.level, placer == null ? this.center : placer.position());
+    WorldHelper.createLootDrop(allDrops, this.level, dropPosition);
   }
 
   public List<BlockPos> explode() {

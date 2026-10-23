@@ -1,5 +1,6 @@
 package moze_intel.projecte.gameObjs.block_entities;
 
+import java.util.List;
 import moze_intel.projecte.api.block_entity.IDMPedestal;
 import moze_intel.projecte.api.capabilities.PECapabilities;
 import moze_intel.projecte.api.capabilities.item.IPedestalItem;
@@ -210,5 +211,10 @@ public class DMPedestalBlockEntity extends EmcBlockEntity implements IDMPedestal
 
   public IItemHandlerModifiable getInventory() {
     return this.inventory;
+  }
+
+  @Override
+  protected List<IItemHandlerModifiable> getInventoriesForDrops() {
+    return List.of(this.inventory);
   }
 }

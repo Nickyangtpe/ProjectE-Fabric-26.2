@@ -90,6 +90,7 @@ public final class PlayerHelper {
       }
     } else {
       for (BlockSnapshot snap : blockSnapshots) {
+        snap.dropContents();
         BlockState previousState = snap.getState();
         BlockPos snapPos = snap.getPos();
         BlockState newBlock = level.getBlockState(snapPos);

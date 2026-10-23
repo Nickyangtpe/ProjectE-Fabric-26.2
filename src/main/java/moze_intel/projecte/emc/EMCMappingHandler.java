@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap.Entry;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -24,6 +25,7 @@ import moze_intel.projecte.api.nss.NSSItem;
 import moze_intel.projecte.api.nss.NormalizedSimpleStack;
 import moze_intel.projecte.compat.common.NeoForge;
 import moze_intel.projecte.compat.server.ServerLifecycleHooks;
+import moze_intel.projecte.config.CustomEMCParser;
 import moze_intel.projecte.config.MappingConfig;
 import moze_intel.projecte.config.ProjectEConfig;
 import moze_intel.projecte.emc.arithmetic.HiddenBigFractionArithmetic;
@@ -31,6 +33,7 @@ import moze_intel.projecte.emc.collector.DumpToFileCollector;
 import moze_intel.projecte.emc.collector.LongToBigFractionCollector;
 import moze_intel.projecte.emc.components.DataComponentManager;
 import moze_intel.projecte.emc.generator.BigFractionToLongGenerator;
+import moze_intel.projecte.emc.mappers.CustomEMCMapper;
 import moze_intel.projecte.emc.mappers.TagMapper;
 import moze_intel.projecte.emc.pregenerated.PregeneratedEMC;
 import moze_intel.projecte.gameObjs.container.TransmutationContainer;
@@ -57,8 +60,17 @@ public final class EMCMappingHandler {
     if (mappers.isEmpty()) {
       mappers.addAll(AnnotationHelper.getEMCMappers());
       mappers.add(new TagMapper());
+      // Explicit values override automatic defaults/blacklists; tag inheritance runs last.
+      mappers.sort(Comparator.comparingInt(EMCMappingHandler::getMappingPriority));
       MappingConfig.setup(mappers, DataComponentManager.loadProcessors());
     }
+  }
+
+  private static int getMappingPriority(IEMCMapper<NormalizedSimpleStack, Long> mapper) {
+    if (mapper instanceof TagMapper) {
+      return 2;
+    }
+    return mapper instanceof CustomEMCMapper ? 1 : 0;
   }
 
   public static void map(
@@ -78,13 +90,15 @@ public final class EMCMappingHandler {
               ProjectEConfig.CONFIG_DIR.resolve("mapping_dump.json"), mappingCollector);
     }
 
-    // A datapack EMC file must be allowed to override a stale pregenerated map. Otherwise a
-    // server with usePregenerated=true silently skips CustomEMCMapper and external mod EMC files.
+    // Explicit server values must never be skipped by an older pregenerated map.
     boolean hasDatapackEmc =
         !resourceManager
             .listResources("emc", id -> id.getPath().endsWith(".json"))
             .isEmpty();
-    boolean usePregenerated = MappingConfig.usePregenerated() && !hasDatapackEmc;
+    boolean hasCustomEmc =
+        CustomEMCParser.currentEntries != null
+            && !CustomEMCParser.currentEntries.entries().isEmpty();
+    boolean usePregenerated = MappingConfig.usePregenerated() && !hasDatapackEmc && !hasCustomEmc;
     Path pregeneratedEmcFile = ProjectEConfig.CONFIG_DIR.resolve("pregenerated_emc.json");
     Optional<Object2LongMap<ItemInfo>> readPregeneratedValues =
         PregeneratedEMC.read(registryAccess, pregeneratedEmcFile, usePregenerated);

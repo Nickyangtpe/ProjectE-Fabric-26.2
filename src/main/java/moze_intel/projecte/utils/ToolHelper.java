@@ -66,11 +66,13 @@ import net.minecraft.world.level.ClipContext.Fluid;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.CampfireBlock;
 import net.minecraft.world.level.block.RotatedPillarBlock;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEvent;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult.Type;
+import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
 
 public class ToolHelper {
@@ -142,6 +144,7 @@ public class ToolHelper {
     int verticalRadius = 2 * horizontalRadius;
     boolean hasAction = false;
     List<ItemStack> drops = new ArrayList<>();
+    Vec3 dropPosition = player.position();
 
     for (BlockPos pos :
         WorldHelper.getPositionsInBox(
@@ -158,15 +161,12 @@ public class ToolHelper {
             break;
           }
 
-          drops.addAll(
-              Block.getDrops(
-                  state,
-                  (ServerLevel) level,
-                  pos,
-                  WorldHelper.getBlockEntity(level, pos),
-                  player,
-                  stack));
-          level.removeBlock(pos, false);
+          BlockEntity blockEntity = WorldHelper.getBlockEntity(level, pos);
+          if (!level.removeBlock(pos, false)) {
+            continue;
+          }
+          WorldHelper.collectBlockDrops(
+              state, (ServerLevel) level, pos, blockEntity, player, stack, drops, dropPosition);
           hasAction = true;
           if (level.getRandom().nextInt(5) == 0) {
             ((ServerLevel) level)
@@ -186,7 +186,7 @@ public class ToolHelper {
     }
 
     if (hasAction) {
-      WorldHelper.createLootDrop(drops, level, player.position());
+      WorldHelper.createLootDrop(drops, level, dropPosition);
       return InteractionResult.SUCCESS;
     } else {
       return InteractionResult.PASS;
@@ -409,6 +409,7 @@ public class ToolHelper {
       PEPickaxe.PickaxeMode mode,
       boolean primaryAlreadyBroken) {
     List<ItemStack> drops = new ArrayList<>();
+    Vec3 dropPosition = Vec3.atLowerCornerOf(pos);
 
     for (BlockPos digPos : getTargets(pos, player, hitSide, mode)) {
       if (!primaryAlreadyBroken || !pos.equals(digPos)) {
@@ -418,21 +419,18 @@ public class ToolHelper {
             && stack.getItem().isCorrectToolForDrops(stack, state)) {
           digPos = digPos.immutable();
           if (PlayerHelper.hasBreakPermission((ServerPlayer) player, level, digPos)) {
-            drops.addAll(
-                Block.getDrops(
-                    state,
-                    (ServerLevel) level,
-                    digPos,
-                    WorldHelper.getBlockEntity(level, digPos),
-                    player,
-                    stack));
-            level.removeBlock(digPos, false);
+            BlockEntity blockEntity = WorldHelper.getBlockEntity(level, digPos);
+            if (level.removeBlock(digPos, false)) {
+              WorldHelper.collectBlockDrops(
+                  state, (ServerLevel) level, digPos, blockEntity, player, stack, drops,
+                  dropPosition);
+            }
           }
         }
       }
     }
 
-    WorldHelper.createLootDrop(drops, level, pos);
+    WorldHelper.createLootDrop(drops, level, dropPosition);
   }
 
   private static Iterable<BlockPos> getTargets(
@@ -478,6 +476,7 @@ public class ToolHelper {
             : WorldHelper.getFlatYBox(pos, charge);
     boolean hasAction = false;
     List<ItemStack> drops = new ArrayList<>();
+    Vec3 dropPosition = Vec3.atLowerCornerOf(pos);
 
     for (BlockPos newPos : WorldHelper.getPositionsInBox(box)) {
       BlockState state = level.getBlockState(newPos);
@@ -494,22 +493,19 @@ public class ToolHelper {
             break;
           }
 
-          drops.addAll(
-              Block.getDrops(
-                  state,
-                  (ServerLevel) level,
-                  newPos,
-                  WorldHelper.getBlockEntity(level, newPos),
-                  player,
-                  stack));
-          level.removeBlock(newPos, false);
+          BlockEntity blockEntity = WorldHelper.getBlockEntity(level, newPos);
+          if (!level.removeBlock(newPos, false)) {
+            continue;
+          }
+          WorldHelper.collectBlockDrops(
+              state, (ServerLevel) level, newPos, blockEntity, player, stack, drops, dropPosition);
           hasAction = true;
         }
       }
     }
 
     if (hasAction) {
-      WorldHelper.createLootDrop(drops, level, pos);
+      WorldHelper.createLootDrop(drops, level, dropPosition);
       player
           .level()
           .playSound(
@@ -764,7 +760,12 @@ public class ToolHelper {
     }
 
     List<ItemStack> drops = new ArrayList<>();
-    if (WorldHelper.harvestVein(level, player, stack, area, drops, data, stateChecker) > 0) {
+    int mined;
+    try (ExperienceDropTarget.Scope ignored =
+        ExperienceDropTarget.at(level, Vec3.atLowerCornerOf(dropPos))) {
+      mined = WorldHelper.harvestVein(level, player, stack, area, drops, data, stateChecker);
+    }
+    if (mined > 0) {
       if (!level.isClientSide()) {
         spawnDrops.drop(drops, level, dropPos);
       }
