@@ -9,7 +9,8 @@
       "moze_intel.projecte.gametest.CondenserGameTests",
       "moze_intel.projecte.gametest.BlockBreakingGameTests",
       "moze_intel.projecte.gametest.EmcCommandGameTests",
-      "moze_intel.projecte.gametest.ChestAutomationGameTests"
+      "moze_intel.projecte.gametest.ChestAutomationGameTests",
+      "moze_intel.projecte.gametest.TransmutationGameTests"
     ]
   },
   "depends": {

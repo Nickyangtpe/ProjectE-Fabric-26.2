@@ -24,12 +24,16 @@ public class SlotOutput extends InventoryContainerSlot {
   @NotNull
   @Override
   public ItemStack remove(int amount) {
-    if (amount == 0) {
+    if (amount <= 0) {
       return ItemStack.EMPTY;
     }
 
     ItemStack stack = ItemHelper.size(this.getItem(), amount);
     long emcValue = IEMCProxy.INSTANCE.getValue(stack);
+    // A displayed target can become valueless after an EMC remap; it is never free output.
+    if (emcValue <= 0L) {
+      return ItemStack.EMPTY;
+    }
     BigInteger bigEmcValue = BigInteger.valueOf(emcValue);
     if (amount > 1) {
       bigEmcValue = bigEmcValue.multiply(BigInteger.valueOf(amount));
@@ -60,7 +64,7 @@ public class SlotOutput extends InventoryContainerSlot {
 
   @Override
   public boolean mayPickup(@NotNull Player player) {
-    return !this.hasItem()
-        || IEMCProxy.INSTANCE.getValue(this.getItem()) <= this.inv.getAvailableEmcAsLong();
+    long emcValue = IEMCProxy.INSTANCE.getValue(this.getItem());
+    return this.hasItem() && emcValue > 0L && emcValue <= this.inv.getAvailableEmcAsLong();
   }
 }

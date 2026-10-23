@@ -106,7 +106,8 @@ data/mymod/emc/projecte.json
 省略物品參數時，會使用主手物品；主手為空時使用副手。
 手持物品與帶 components 的物品參數會保留精確變體設定。
 `removeemc` 設為 0，`resetemc` 移除自訂設定並恢復資料包／自動映射結果。
-設定後執行 `/reload` 套用。
+設定、移除及重設後會立即儲存並重新計算 EMC，自動同步所有線上玩家的 EMC 與燃料排序。
+轉化桌顯示也會隨新價格更新，無需再手動執行 `/reload`。
 
 ## EMI、REI 與 JEI 配方相容性
 
@@ -238,6 +239,15 @@ EMC 重映射、區塊卸載後磁碟重載及 NBT 存檔資料重建。
 使用原生漏斗、投擲器、礦車、玩家破壞及放置取消事件驗證數量守恆。
 EMC 指令、tag、components、重映射及快取回歸位於 `EmcCommandGameTests.java`。
 兩組測試也會隨 `runGameTest` 或 `clean build` 執行。
+
+### 轉化桌與玩家物品欄的物品守恆
+
+轉化桌 Shift 點擊只會取得 EMC 實際可購買且物品欄能容納的數量，並依真正插入的數量扣款。
+玩家身上已有同類物品時，合併只加入實際購買數量；永恆密度寶石的玩家物品欄輸出也使用這個守恆流程。
+EMC 重映射後已變成無價值的舊顯示項目，不能透過點擊、快捷列交換或丟棄取得免費物品。
+
+`src/gametest/java/moze_intel/projecte/gametest/TransmutationGameTests.java`
+涵蓋 Shift＋右鍵、重複點擊封包、滿物品欄、Klein Star 扣款、寶石輸出、components 合併與無效抽取。
 
 ## 原始碼結構
 

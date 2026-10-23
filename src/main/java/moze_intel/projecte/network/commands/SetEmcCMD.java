@@ -96,10 +96,11 @@ public final class SetEmcCMD {
     return result.map(NSSItem::createItem, NSSItem::createTag);
   }
 
-  private static int setEmc(CommandContext<CommandSourceStack> ctx, NSSItem toSet, long emc) {
+  private static int setEmc(CommandContext<CommandSourceStack> ctx, NSSItem toSet, long emc)
+      throws CommandSyntaxException {
     CustomEMCParser.addToFile(toSet, emc);
+    EmcCommandHelper.refresh(ctx.getSource());
     ctx.getSource().sendSuccess(() -> PELang.COMMAND_SET_SUCCESS.translate(toSet, emc), true);
-    ctx.getSource().sendSuccess(PELang.RELOAD_NOTICE::translate, true);
     return 1;
   }
 }

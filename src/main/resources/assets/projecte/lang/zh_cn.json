@@ -158,11 +158,12 @@
     "command.projecte.clear_knowledge.success": "成功清空玩家 %s 的转化知识.",
 
     "command.projecte.emc.invalid_item": "错误：未找到物品\"%s\"！",
-    "command.projecte.remove.success": "成功移除 %s 的EMC值.",
+    "command.projecte.remove.success": "已移除 %1$s 的 EMC 值，并重新计算及同步。",
 
-    "command.projecte.reset.success": "成功修改\"%s\"的EMC值。",
+    "command.projecte.reset.success": "已重置 %1$s 的 EMC 值，并重新计算及同步。",
 
-    "command.projecte.set.success": "已将 %s 的EMC值设为 %s.",
+    "command.projecte.set.success": "已将 %1$s 的 EMC 值设为 %2$s，并重新计算及同步。",
+    "command.projecte.emc.refresh.fail": "无法保存或刷新 EMC 设置，请查看服务器日志。",
 
     "mode.projecte.pick.1": "普通模式",
     "mode.projecte.pick.2": "3x 竖直模式",

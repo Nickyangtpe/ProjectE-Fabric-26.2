@@ -192,6 +192,26 @@ public final class PECore {
 
   private static void reloadProjectEData(MinecraftServer server, ResourceManager resourceManager) {
     try {
+      calculateEmcValues(server, resourceManager);
+    } catch (Throwable throwable) {
+      LOGGER.error("Error calculating ProjectE EMC values", throwable);
+    }
+  }
+
+  /** Applies command changes on the server thread and synchronizes the resulting EMC data. */
+  public static void refreshEMCValues(MinecraftServer server) {
+    if (!CustomEMCParser.flush(server.registryAccess())) {
+      throw new IllegalStateException("Could not save custom EMC settings");
+    }
+    calculateEmcValues(server, server.getResourceManager());
+    for (ServerPlayer player : server.getPlayerList().getPlayers()) {
+      syncEmcContents(player);
+    }
+  }
+
+  private static void calculateEmcValues(MinecraftServer server, ResourceManager resourceManager) {
+    var previousValues = EMCMappingHandler.createPacketData();
+    try {
       AbstractNSSTag.clearCreatedTags();
       CustomEMCParser.init(server.registryAccess());
       EMCMappingHandler.loadMappers();
@@ -200,15 +220,21 @@ public final class PECore {
       EMCMappingHandler.map(serverResources, server.registryAccess(), resourceManager);
       lastMappedServer = server;
       LOGGER.info("Registered {} EMC values", EMCMappingHandler.getEmcMapSize());
-    } catch (Throwable throwable) {
-      LOGGER.error("Error calculating ProjectE EMC values", throwable);
+    } catch (RuntimeException exception) {
+      EMCMappingHandler.updateEmcValues(previousValues.data());
+      FuelMapper.loadMap();
+      throw exception;
     }
   }
 
   private static void syncDataPackContents(ServerPlayer player) {
+    syncEmcContents(player);
+    PacketDistributor.sendToPlayer(player, WorldTransmutationManager.getSyncPacket());
+  }
+
+  private static void syncEmcContents(ServerPlayer player) {
     PacketDistributor.sendToPlayer(player, EMCMappingHandler.createPacketData());
     PacketDistributor.sendToPlayer(player, FuelMapper.getSyncPacket());
-    PacketDistributor.sendToPlayer(player, WorldTransmutationManager.getSyncPacket());
   }
 
   private static void flushPersistentFiles(MinecraftServer server) {

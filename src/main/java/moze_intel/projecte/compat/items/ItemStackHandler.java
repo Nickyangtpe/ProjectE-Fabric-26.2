@@ -90,7 +90,7 @@ public class ItemStackHandler implements IItemHandlerModifiable {
   @NotNull
   @Override
   public ItemStack extractItem(int slot, int amount, boolean simulate) {
-    if (amount == 0) {
+    if (amount <= 0) {
       return ItemStack.EMPTY;
     }
 

@@ -57,24 +57,26 @@ public class PlayerMainInvWrapper implements IItemHandlerModifiable {
       return stack;
     }
 
-    boolean reachedLimit = stack.getCount() > limit;
+    int accepted = Math.min(stack.getCount(), limit);
     if (!simulate) {
       if (existing.isEmpty()) {
-        this.inventory.setItem(slot, reachedLimit ? stack.copyWithCount(limit) : stack.copy());
+        this.inventory.setItem(slot, stack.copyWithCount(accepted));
       } else {
-        existing.grow(limit);
+        existing.grow(accepted);
       }
 
       this.inventory.setChanged();
     }
 
-    return reachedLimit ? stack.copyWithCount(stack.getCount() - limit) : ItemStack.EMPTY;
+    return accepted == stack.getCount()
+        ? ItemStack.EMPTY
+        : stack.copyWithCount(stack.getCount() - accepted);
   }
 
   @NotNull
   @Override
   public ItemStack extractItem(int slot, int amount, boolean simulate) {
-    if (amount == 0) {
+    if (amount <= 0) {
       return ItemStack.EMPTY;
     }
 

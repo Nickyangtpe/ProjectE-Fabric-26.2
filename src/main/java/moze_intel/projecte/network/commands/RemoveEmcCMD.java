@@ -49,11 +49,12 @@ public final class RemoveEmcCMD {
     return command;
   }
 
-  private static int removeEmc(CommandContext<CommandSourceStack> ctx, NSSItem item) {
+  private static int removeEmc(CommandContext<CommandSourceStack> ctx, NSSItem item)
+      throws CommandSyntaxException {
     CustomEMCParser.addToFile(item, 0L);
+    EmcCommandHelper.refresh(ctx.getSource());
     ctx.getSource()
         .sendSuccess(() -> PELang.COMMAND_REMOVE_SUCCESS.translate(item), true);
-    ctx.getSource().sendSuccess(PELang.RELOAD_NOTICE::translate, true);
     return 1;
   }
 

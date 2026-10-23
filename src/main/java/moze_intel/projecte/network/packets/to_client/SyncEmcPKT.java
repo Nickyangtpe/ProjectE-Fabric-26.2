@@ -7,6 +7,7 @@ import moze_intel.projecte.PECore;
 import moze_intel.projecte.api.ItemInfo;
 import moze_intel.projecte.compat.network.handling.IPayloadContext;
 import moze_intel.projecte.emc.EMCMappingHandler;
+import moze_intel.projecte.gameObjs.container.TransmutationContainer;
 import moze_intel.projecte.network.packets.IPEPacket;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -33,6 +34,9 @@ public record SyncEmcPKT(Object2LongMap<ItemInfo> data) implements IPEPacket {
   public void handle(IPayloadContext context) {
     PECore.debugLog("Receiving EMC data from server.");
     EMCMappingHandler.updateEmcValues(this.data);
+    if (context.player().containerMenu instanceof TransmutationContainer container) {
+      container.transmutationInventory.updateClientTargets(false);
+    }
   }
 
   public static SyncEmcPKT serializeEmcData(RegistryAccess registryAccess) {
