@@ -36,7 +36,7 @@ public final class ItemHandlerHelper {
 
     for (int i = 0; i < sizeInventory; i++) {
       ItemStack slot = inventory.getStackInSlot(i);
-      if (canItemStacksStackRelaxed(slot, stack)) {
+      if (ItemStack.isSameItemSameComponents(slot, stack)) {
         stack = inventory.insertItem(i, stack, simulate);
         if (stack.isEmpty()) {
           break;

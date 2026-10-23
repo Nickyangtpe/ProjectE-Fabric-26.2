@@ -49,6 +49,28 @@ dependencies {
 
 	// NeoForge bundled commons-math3; Fabric does not, so declare it explicitly.
 	implementation 'org.apache.commons:commons-math3:3.6.1'
+
+	testImplementation "net.fabricmc:fabric-loader-junit:${project.loader_version}"
+}
+
+test {
+	useJUnitPlatform()
+}
+
+fabricApi {
+	configureTests {
+		createSourceSet = true
+		modId = 'projecte_condenser_tests'
+		enableClientGameTests = false
+	}
+}
+
+loom {
+	runs {
+		gameTest {
+			vmArg '-Dfabric-api.gametest.report-file=build/gametest-results.xml'
+		}
+	}
 }
 
 processResources {

@@ -160,6 +160,41 @@ build/libs/ProjectE-1.2.0.jar
 build/libs/ProjectE-1.2.0-sources.jar
 ```
 
+### Energy Condenser 回歸測試
+
+凝聚器測試使用專案的 Gradle Wrapper、Fabric Loader JUnit 與 Fabric GameTest。
+`build` 的 `check` 階段會同時執行單元測試與實際 Minecraft 伺服器測試。
+
+在 Windows PowerShell 使用 JDK 25 時，先設定並確認實際使用的 JVM：
+
+```powershell
+$env:JAVA_HOME = "C:\Users\Nicky\Downloads\jdk-25_windows-x64_bin\jdk-25.0.4.1"
+$env:Path = "$env:JAVA_HOME\bin;$env:Path"
+java -version
+.\gradlew.bat --version
+
+# 底層物品插入／合併與模擬插入的守恆測試
+.\gradlew.bat test --no-configuration-cache
+
+# MK1／MK2 凝聚器、容器、封包及存檔的伺服器回歸測試
+.\gradlew.bat runGameTest --no-configuration-cache
+
+# 包含上述測試的完整乾淨建置
+.\gradlew.bat clean build --no-configuration-cache
+```
+
+測試涵蓋高低 EMC 目標互換、舊輸出重新轉換、快速切換、重複／過期點擊封包、
+無 EMC 目標、Shift 點擊、自動化、輸出空間與物品 components、GUI 重開同步、
+EMC 重映射、區塊卸載後磁碟重載及 NBT 存檔資料重建。
+使用 `BigInteger` 檢查輸入、輸出物品價值與累積 EMC 的總額，避免測試本身溢位。
+
+- 單元測試報告：`build/reports/tests/test/index.html`
+- 伺服器測試報告：`build/run/gameTest/build/gametest-results.xml`
+- 伺服器測試記錄：`build/run/gameTest/logs/latest.log`
+
+測試用模組與 EMC 資料位於 `src/gametest/`，不會打包進正式的 ProjectE JAR。
+漏洞原因及修復流程見 [`docs/energy-condenser-fix.md`](docs/energy-condenser-fix.md)。
+
 ## 原始碼結構
 
 ```text

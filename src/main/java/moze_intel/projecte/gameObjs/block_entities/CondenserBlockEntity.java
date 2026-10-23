@@ -111,6 +111,10 @@ public class CondenserBlockEntity extends EmcChestBlockEntity {
 
   public static void tickServer(
       Level level, BlockPos pos, BlockState state, CondenserBlockEntity condenser) {
+    if (level.isClientSide()) {
+      return;
+    }
+
     condenser.checkLockAndUpdate(false);
     condenser.displayEmc = condenser.getStoredEmc();
     if (condenser.getLockInfo() != null) {
@@ -121,24 +125,17 @@ public class CondenserBlockEntity extends EmcChestBlockEntity {
   }
 
   private void checkLockAndUpdate(boolean force) {
-    if (force || this.loadIndex != EMCMappingHandler.getLoadIndex()) {
-      this.loadIndex = EMCMappingHandler.getLoadIndex();
-      if (this.lockInfo != null) {
-        long lockEmc = IEMCProxy.INSTANCE.getValue(this.lockInfo);
-        if (lockEmc > 0L) {
-          if (this.requiredEmc != lockEmc) {
-            this.requiredEmc = lockEmc;
-            this.isAcceptingEmc = true;
-          }
-
-          return;
-        }
-      }
-
-      this.displayEmc = 0L;
-      this.requiredEmc = 0L;
-      this.isAcceptingEmc = false;
+    if (!force && this.loadIndex == EMCMappingHandler.getLoadIndex()) {
+      return;
     }
+
+    this.loadIndex = EMCMappingHandler.getLoadIndex();
+    long lockEmc = this.lockInfo == null ? 0L : IEMCProxy.INSTANCE.getValue(this.lockInfo);
+    this.requiredEmc = Math.max(0L, lockEmc);
+    this.isAcceptingEmc = this.requiredEmc > 0L;
+    // Clearing/changing the ghost target never clears the stored EMC, as in Forge.
+    // Keep a valueless lock internally so an EMC remap can make it usable again.
+    this.displayEmc = this.isAcceptingEmc ? this.getStoredEmc() : 0L;
   }
 
   protected void condense() {
@@ -147,37 +144,74 @@ public class CondenserBlockEntity extends EmcChestBlockEntity {
     for (int slots = this.inputInventory.getSlots(); i < slots; i++) {
       ItemStack stack = this.inputInventory.getStackInSlot(i);
       if (!stack.isEmpty() && !this.isStackEqualToLock(stack)) {
-        this.inputInventory.extractItem(i, 1, false);
-        this.forceInsertEmc(IEMCProxy.INSTANCE.getSellValue(stack), IEmcStorage.EmcAction.EXECUTE);
+        this.consumeInput(i, 1);
         break;
       }
     }
 
-    if (this.getStoredEmc() >= this.requiredEmc && this.hasSpace()) {
-      this.forceExtractEmc(this.requiredEmc, IEmcStorage.EmcAction.EXECUTE);
-      this.pushStack();
+    this.produceOutput();
+  }
+
+  protected final void consumeInput(int slot, int maximumCount) {
+    if (this.level == null || this.level.isClientSide() || this.getLockInfo() == null) {
+      return;
+    }
+
+    ItemStack stack = this.inputInventory.getStackInSlot(slot);
+    long sellEmc = IEMCProxy.INSTANCE.getSellValue(stack);
+    int count = Math.min(maximumCount, stack.getCount());
+    if (sellEmc > 0L) {
+      // Do not destroy EMC that cannot fit, or overflow when MK2 sells a whole stack.
+      count = (int) Math.min(count, this.getNeededEmc() / sellEmc);
+    }
+    if (count > 0) {
+      ItemStack consumed = this.inputInventory.extractItem(slot, count, false);
+      this.forceInsertEmc(sellEmc * consumed.getCount(), IEmcStorage.EmcAction.EXECUTE);
     }
   }
 
-  protected final void pushStack() {
-    ItemInfo lockInfo = this.getLockInfo();
-    if (lockInfo != null) {
-      ItemHandlerHelper.insertItemStacked(this.outputInventory, lockInfo.createStack(), false);
+  protected final boolean produceOutput() {
+    if (this.level == null || this.level.isClientSide()) {
+      return false;
     }
+
+    this.checkLockAndUpdate(false);
+    ItemInfo lockInfo = this.getLockInfo();
+    long cost = this.requiredEmc;
+    if (lockInfo == null || cost <= 0L || this.getStoredEmc() < cost) {
+      return false;
+    }
+
+    ItemStack output = lockInfo.createStack();
+    if (output.isEmpty()
+        || output.getCount() != 1
+        || IEMCProxy.INSTANCE.getValue(output) != cost) {
+      this.checkLockAndUpdate(true);
+      return false;
+    }
+    if (!ItemHandlerHelper.insertItemStacked(this.outputInventory, output, true).isEmpty()) {
+      return false;
+    }
+
+    // Tick processing and menu clicks run on the server thread. Reserve exactly one
+    // item's cost and refund it if insertion fails; MK1 and MK2 use the same operation.
+    long extracted = this.forceExtractEmc(cost, IEmcStorage.EmcAction.EXECUTE);
+    if (extracted != cost) {
+      this.forceInsertEmc(extracted, IEmcStorage.EmcAction.EXECUTE);
+      return false;
+    }
+    if (!ItemHandlerHelper.insertItemStacked(this.outputInventory, output, false).isEmpty()) {
+      this.forceInsertEmc(cost, IEmcStorage.EmcAction.EXECUTE);
+      return false;
+    }
+    return true;
   }
 
   protected boolean hasSpace() {
-    int i = 0;
-
-    for (int slots = this.outputInventory.getSlots(); i < slots; i++) {
-      ItemStack stack = this.outputInventory.getStackInSlot(i);
-      if (stack.isEmpty()
-          || this.isStackEqualToLock(stack) && stack.getCount() < stack.getMaxStackSize()) {
-        return true;
-      }
-    }
-
-    return false;
+    ItemInfo lockInfo = this.getLockInfo();
+    return lockInfo != null
+        && ItemHandlerHelper.insertItemStacked(this.outputInventory, lockInfo.createStack(), true)
+            .isEmpty();
   }
 
   public boolean isStackEqualToLock(ItemStack stack) {
@@ -192,11 +226,19 @@ public class CondenserBlockEntity extends EmcChestBlockEntity {
   }
 
   public void setLockInfoFromPacket(@Nullable ItemInfo lockInfo) {
-    this.lockInfo = lockInfo;
+    // This is display-only client synchronization, never a server target setter.
+    if (this.level != null && this.level.isClientSide()) {
+      this.lockInfo = lockInfo;
+    }
   }
 
   public boolean attemptCondenserSet(Player player) {
-    return this.level != null && this.attemptCondenserSet(this.level, this.worldPosition, player);
+    return this.level != null
+        && player.containerMenu instanceof CondenserContainer container
+        && container.blockEntityMatches(this)
+        && container.stillValid(player)
+        && !player.isSpectator()
+        && this.attemptCondenserSet(this.level, this.worldPosition, player);
   }
 
   private boolean attemptCondenserSet(@NotNull Level level, @NotNull BlockPos pos, Player player) {
@@ -204,6 +246,7 @@ public class CondenserBlockEntity extends EmcChestBlockEntity {
       return false;
     }
 
+    this.checkLockAndUpdate(false);
     if (this.getLockInfo() == null) {
       ItemStack stack = player.containerMenu.getCarried();
       if (!stack.isEmpty()) {
@@ -235,9 +278,18 @@ public class CondenserBlockEntity extends EmcChestBlockEntity {
   @Override
   public void loadAdditional(@NotNull ValueInput tag) {
     super.loadAdditional(tag);
-    tag.read("input", CompoundTag.CODEC)
-        .ifPresent(data -> this.inputInventory.deserializeNBT(tag.lookup(), data));
+    this.inputInventory.deserializeNBT(
+        tag.lookup(), tag.read("input", CompoundTag.CODEC).orElseGet(CompoundTag::new));
     this.lockInfo = (ItemInfo) tag.read("lock", ItemInfo.CODEC).orElse(null);
+    // Loading may reuse an existing block entity. No cost/acceptance cache from the
+    // previous target may survive, including when the EMC mapping index is unchanged.
+    this.loadIndex = EMCMappingHandler.getLoadIndex() - 1;
+    this.requiredEmc = 0L;
+    this.displayEmc = 0L;
+    this.isAcceptingEmc = false;
+    if (this.level != null && !this.level.isClientSide()) {
+      this.checkLockAndUpdate(true);
+    }
   }
 
   @Override

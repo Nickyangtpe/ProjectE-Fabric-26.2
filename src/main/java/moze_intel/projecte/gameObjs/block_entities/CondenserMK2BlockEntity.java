@@ -1,7 +1,5 @@
 package moze_intel.projecte.gameObjs.block_entities;
 
-import moze_intel.projecte.api.capabilities.block_entity.IEmcStorage;
-import moze_intel.projecte.api.proxy.IEMCProxy;
 import moze_intel.projecte.compat.items.IItemHandler;
 import moze_intel.projecte.compat.items.IItemHandlerModifiable;
 import moze_intel.projecte.compat.items.ItemStackHandler;
@@ -59,9 +57,7 @@ public class CondenserMK2BlockEntity extends CondenserBlockEntity {
 
   @Override
   protected void condense() {
-    while (this.hasSpace() && this.getStoredEmc() >= this.requiredEmc) {
-      this.pushStack();
-      this.forceExtractEmc(this.requiredEmc, IEmcStorage.EmcAction.EXECUTE);
+    while (this.produceOutput()) {
     }
 
     if (this.hasSpace()) {
@@ -70,10 +66,7 @@ public class CondenserMK2BlockEntity extends CondenserBlockEntity {
       for (int slots = this.getInput().getSlots(); i < slots; i++) {
         ItemStack stack = this.getInput().getStackInSlot(i);
         if (!stack.isEmpty()) {
-          this.forceInsertEmc(
-              IEMCProxy.INSTANCE.getSellValue(stack) * stack.getCount(),
-              IEmcStorage.EmcAction.EXECUTE);
-          this.getInput().setStackInSlot(i, ItemStack.EMPTY);
+          this.consumeInput(i, stack.getCount());
           break;
         }
       }
@@ -83,8 +76,8 @@ public class CondenserMK2BlockEntity extends CondenserBlockEntity {
   @Override
   public void loadAdditional(@NotNull ValueInput tag) {
     super.loadAdditional(tag);
-    tag.read("output", CompoundTag.CODEC)
-        .ifPresent(data -> this.getOutput().deserializeNBT(tag.lookup(), data));
+    this.getOutput().deserializeNBT(
+        tag.lookup(), tag.read("output", CompoundTag.CODEC).orElseGet(CompoundTag::new));
   }
 
   @Override

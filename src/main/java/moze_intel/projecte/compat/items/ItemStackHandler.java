@@ -54,6 +54,10 @@ public class ItemStackHandler implements IItemHandlerModifiable {
     }
 
     this.validateSlotIndex(slot);
+    if (!this.isItemValid(slot, stack)) {
+      return stack;
+    }
+
     ItemStack existing = (ItemStack) this.stacks.get(slot);
     int limit = this.getStackLimit(slot, stack);
     if (!existing.isEmpty()) {
@@ -73,7 +77,8 @@ public class ItemStackHandler implements IItemHandlerModifiable {
       if (existing.isEmpty()) {
         this.stacks.set(slot, reachedLimit ? stack.copyWithCount(limit) : stack.copy());
       } else {
-        existing.grow(limit);
+        // The free capacity is not the number of items supplied by the caller.
+        existing.grow(reachedLimit ? limit : stack.getCount());
       }
 
       this.onContentsChanged(slot);

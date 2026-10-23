@@ -1,0 +1,12 @@
+{
+  "comment": "Deterministic EMC values for the condenser's conservation and overflow regressions. Only loaded by the test mod.",
+  "values": {
+    "minecraft:cobblestone": 1,
+    "minecraft:coal": 128,
+    "minecraft:gold_ingot": 2048,
+    "minecraft:diamond": 8192,
+    "minecraft:bedrock": 0,
+    "minecraft:barrier": 4611686018427387904,
+    "minecraft:nether_star": 9223372036854775807
+  }
+}
