@@ -1,6 +1,7 @@
 package moze_intel.projecte.gameObjs.items;
 
 import moze_intel.projecte.api.capabilities.item.IModeChanger;
+import moze_intel.projecte.utils.PlayerHelper;
 import moze_intel.projecte.utils.text.ILangEntry;
 import moze_intel.projecte.utils.text.PELang;
 import net.minecraft.ChatFormatting;
@@ -27,7 +28,7 @@ public interface IItemMode<MODE extends Enum<MODE> & IModeEnum<MODE>> extends IM
     MODE newMode = (MODE) mode.next(stack);
     if (mode != newMode) {
       stack.set(this.getDataComponentType(), newMode);
-      player.sendSystemMessage(this.getModeSwitchEntry().translate(newMode));
+      PlayerHelper.sendOverlayMessage(player, this.getModeSwitchEntry().translate(newMode));
       return true;
     } else {
       return false;

@@ -13,6 +13,11 @@ public class ClientConfig extends BasePEConfig {
   public final CachedBooleanValue statToolTips;
   public final CachedBooleanValue tagToolTips;
   public final CachedBooleanValue pulsatingOverlay;
+  public final CachedBooleanValue contextualHud;
+  public final CachedBooleanValue contextualHudItemIcon;
+  public final CachedBooleanValue contextualHudMode;
+  public final CachedBooleanValue contextualHudCharge;
+  public final CachedBooleanValue contextualHudKeyHints;
 
   ClientConfig() {
     ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
@@ -22,6 +27,36 @@ public class ClientConfig extends BasePEConfig {
             PEConfigTranslations.CLIENT_PHILO_OVERLAY
                 .applyToBuilder(builder)
                 .define("pulsatingOverlay", false));
+    this.contextualHud =
+        CachedBooleanValue.wrap(
+            this,
+            PEConfigTranslations.CLIENT_CONTEXTUAL_HUD
+                .applyToBuilder(builder)
+                .define("contextualHud", true));
+    this.contextualHudItemIcon =
+        CachedBooleanValue.wrap(
+            this,
+            PEConfigTranslations.CLIENT_CONTEXTUAL_HUD_ICON
+                .applyToBuilder(builder)
+                .define("contextualHudItemIcon", true));
+    this.contextualHudMode =
+        CachedBooleanValue.wrap(
+            this,
+            PEConfigTranslations.CLIENT_CONTEXTUAL_HUD_MODE
+                .applyToBuilder(builder)
+                .define("contextualHudMode", true));
+    this.contextualHudCharge =
+        CachedBooleanValue.wrap(
+            this,
+            PEConfigTranslations.CLIENT_CONTEXTUAL_HUD_CHARGE
+                .applyToBuilder(builder)
+                .define("contextualHudCharge", true));
+    this.contextualHudKeyHints =
+        CachedBooleanValue.wrap(
+            this,
+            PEConfigTranslations.CLIENT_CONTEXTUAL_HUD_HINTS
+                .applyToBuilder(builder)
+                .define("contextualHudKeyHints", true));
     PEConfigTranslations.CLIENT_TOOLTIPS.applyToBuilder(builder).push("tooltips");
     this.emcToolTips =
         CachedBooleanValue.wrap(

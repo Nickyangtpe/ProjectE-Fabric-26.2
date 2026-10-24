@@ -3,7 +3,7 @@ package moze_intel.projecte.gameObjs.items.rings;
 import java.util.ArrayList;
 import java.util.List;
 import moze_intel.projecte.api.block_entity.IDMPedestal;
-import moze_intel.projecte.api.capabilities.item.IPedestalItem;
+import moze_intel.projecte.api.capabilities.item.IPedestalRangeItem;
 import moze_intel.projecte.compat.capabilities.RegisterCapabilitiesEvent;
 import moze_intel.projecte.config.ProjectEConfig;
 import moze_intel.projecte.gameObjs.items.ICapabilityAware;
@@ -29,7 +29,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.gameevent.GameEvent;
 import org.jetbrains.annotations.NotNull;
 
-public class BodyStone extends PEToggleItem implements IPedestalItem, ICapabilityAware {
+public class BodyStone extends PEToggleItem implements IPedestalRangeItem, ICapabilityAware {
   public BodyStone(Properties props) {
     super(props.component(PEDataComponentTypes.STORED_EMC, 0L));
   }

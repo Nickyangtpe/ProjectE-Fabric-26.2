@@ -3,7 +3,7 @@ package moze_intel.projecte.gameObjs.items.rings;
 import java.util.List;
 import java.util.function.Consumer;
 import moze_intel.projecte.api.block_entity.IDMPedestal;
-import moze_intel.projecte.api.capabilities.item.IPedestalItem;
+import moze_intel.projecte.api.capabilities.item.IPedestalRangeItem;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
 import moze_intel.projecte.utils.WorldHelper;
 import moze_intel.projecte.utils.text.PELang;
@@ -27,7 +27,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
-public class MindStone extends PEToggleItem implements IPedestalItem {
+public class MindStone extends PEToggleItem implements IPedestalRangeItem {
   private static final int TRANSFER_RATE = 50;
 
   public MindStone(Properties props) {

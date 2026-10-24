@@ -6,6 +6,7 @@ import moze_intel.projecte.gameObjs.registries.PEArmorMaterials;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
 import moze_intel.projecte.utils.ClientKeyHelper;
 import moze_intel.projecte.utils.PEKeybind;
+import moze_intel.projecte.utils.PlayerHelper;
 import moze_intel.projecte.utils.text.PELang;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.component.DataComponents;
@@ -60,7 +61,7 @@ public class GemFeet extends GemArmorBase {
     boots.set(
         DataComponents.ATTRIBUTE_MODIFIERS,
         newValue ? createStepAssistModifiers() : createDefaultModifiers());
-    player.sendSystemMessage(getComponent(newValue));
+    PlayerHelper.sendOverlayMessage(player, getComponent(newValue));
   }
 
   public void inventoryTick(

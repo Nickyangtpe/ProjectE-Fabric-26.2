@@ -18,6 +18,7 @@ import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents.Before;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundAnimatePacket;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -215,6 +216,12 @@ public final class PlayerHelper {
       level
           .getChunkSource()
           .sendToTrackingPlayersAndSelf(serverPlayer, new ClientboundAnimatePacket(player, action));
+    }
+  }
+
+  public static void sendOverlayMessage(Player player, Component message) {
+    if (!(player instanceof ServerPlayer serverPlayer) || serverPlayer.connection != null) {
+      player.sendOverlayMessage(message);
     }
   }
 

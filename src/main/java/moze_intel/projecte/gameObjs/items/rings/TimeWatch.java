@@ -10,12 +10,13 @@ import java.util.function.IntFunction;
 import java.util.function.Predicate;
 import moze_intel.projecte.api.block_entity.IDMPedestal;
 import moze_intel.projecte.api.capabilities.item.IItemCharge;
-import moze_intel.projecte.api.capabilities.item.IPedestalItem;
+import moze_intel.projecte.api.capabilities.item.IPedestalRangeItem;
 import moze_intel.projecte.config.ProjectEConfig;
 import moze_intel.projecte.gameObjs.PETags;
 import moze_intel.projecte.gameObjs.items.IBarHelper;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
 import moze_intel.projecte.utils.EMCHelper;
+import moze_intel.projecte.utils.PlayerHelper;
 import moze_intel.projecte.utils.RegistryUtils;
 import moze_intel.projecte.utils.WorldHelper;
 import moze_intel.projecte.utils.text.ILangEntry;
@@ -51,7 +52,8 @@ import net.minecraft.world.level.material.FluidState;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.NotNull;
 
-public class TimeWatch extends PEToggleItem implements IPedestalItem, IItemCharge, IBarHelper {
+public class TimeWatch extends PEToggleItem
+    implements IPedestalRangeItem, IItemCharge, IBarHelper {
   private static final Predicate<BlockEntity> VALID_TARGET =
       be ->
           !be.isRemoved()
@@ -72,7 +74,7 @@ public class TimeWatch extends PEToggleItem implements IPedestalItem, IItemCharg
     ItemStack stack = player.getItemInHand(hand);
     if (!level.isClientSide()) {
       if (!ProjectEConfig.server.items.enableTimeWatch.get()) {
-        player.sendSystemMessage(PELang.TIME_WATCH_DISABLED.translate());
+        PlayerHelper.sendOverlayMessage(player, PELang.TIME_WATCH_DISABLED.translate());
         return InteractionResult.FAIL;
       }
 
@@ -80,10 +82,24 @@ public class TimeWatch extends PEToggleItem implements IPedestalItem, IItemCharg
           PEDataComponentTypes.TIME_WATCH_MODE,
           TimeWatch.TimeWatchMode.OFF,
           TimeWatch.TimeWatchMode::next);
-      player.sendSystemMessage(PELang.TIME_WATCH_MODE_SWITCH.translate(this.getTimeName(stack)));
+      PlayerHelper.sendOverlayMessage(
+          player, PELang.TIME_WATCH_MODE_SWITCH.translate(this.getTimeName(stack)));
     }
 
     return InteractionResult.SUCCESS.heldItemTransformedTo(stack);
+  }
+
+  @Override
+  public boolean changeMode(
+      @NotNull Player player, @NotNull ItemStack stack, InteractionHand hand) {
+    if (!ProjectEConfig.server.items.enableTimeWatch.get()) {
+      if (!player.level().isClientSide()) {
+        PlayerHelper.sendOverlayMessage(player, PELang.TIME_WATCH_DISABLED.translate());
+      }
+      return true;
+    }
+
+    return super.changeMode(player, stack, hand);
   }
 
   public void inventoryTick(

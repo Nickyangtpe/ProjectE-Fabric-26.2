@@ -3,7 +3,7 @@ package moze_intel.projecte.gameObjs.items.rings;
 import java.util.List;
 import moze_intel.projecte.api.block_entity.IDMPedestal;
 import moze_intel.projecte.api.capabilities.item.IExtraFunction;
-import moze_intel.projecte.api.capabilities.item.IPedestalItem;
+import moze_intel.projecte.api.capabilities.item.IPedestalRangeItem;
 import moze_intel.projecte.compat.common.NeoForge;
 import moze_intel.projecte.compat.event.entity.EntityTeleportEvent;
 import moze_intel.projecte.compat.items.IItemHandler;
@@ -28,7 +28,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.HitResult.Type;
 import org.jetbrains.annotations.NotNull;
 
-public class VoidRing extends GemEternalDensity implements IPedestalItem, IExtraFunction {
+public class VoidRing extends GemEternalDensity implements IPedestalRangeItem, IExtraFunction {
   public VoidRing(Properties props) {
     super(props);
   }

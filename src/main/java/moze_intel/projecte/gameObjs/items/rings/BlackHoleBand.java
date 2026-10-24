@@ -7,7 +7,7 @@ import java.util.Optional;
 import moze_intel.projecte.api.block_entity.IDMPedestal;
 import moze_intel.projecte.api.capabilities.item.IAlchBagItem;
 import moze_intel.projecte.api.capabilities.item.IAlchChestItem;
-import moze_intel.projecte.api.capabilities.item.IPedestalItem;
+import moze_intel.projecte.api.capabilities.item.IPedestalRangeItem;
 import moze_intel.projecte.compat.capabilities.Capabilities;
 import moze_intel.projecte.compat.capabilities.RegisterCapabilitiesEvent;
 import moze_intel.projecte.compat.items.IItemHandler;
@@ -47,7 +47,7 @@ import net.minecraft.world.phys.HitResult.Type;
 import org.jetbrains.annotations.NotNull;
 
 public class BlackHoleBand extends PEToggleItem
-    implements IAlchBagItem, IAlchChestItem, IPedestalItem, ICapabilityAware {
+    implements IAlchBagItem, IAlchChestItem, IPedestalRangeItem, ICapabilityAware {
   public BlackHoleBand(Properties props) {
     super(props);
   }

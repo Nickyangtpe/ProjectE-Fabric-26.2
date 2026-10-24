@@ -105,7 +105,7 @@ public record KeyPressPKT(PEKeybind key) implements IPEPacket {
                     !(Boolean) player.getAttachedOrElse(PEAttachmentTypes.GEM_ARMOR_STATE, false);
                 player.setAttached(PEAttachmentTypes.GEM_ARMOR_STATE, active);
                 ILangEntry langEntry = active ? PELang.GEM_ACTIVATE : PELang.GEM_DEACTIVATE;
-                player.sendSystemMessage(langEntry.translate());
+                PlayerHelper.sendOverlayMessage(player, langEntry.translate());
                 return;
               }
               break;
@@ -135,16 +135,14 @@ public record KeyPressPKT(PEKeybind key) implements IPEPacket {
               }
               break;
             case FIRE_PROJECTILE:
-              if (!stack.isEmpty()
+              IProjectileShooter projectile =
+                  PECapabilities.PROJECTILE_SHOOTER_ITEM_CAPABILITY.find(stack, null);
+              if (projectile != null
                   && PlayerHelper.checkCooldown(
                       player, stack.getItem(), ProjectEConfig.server.cooldown.player.projectile)
-                  && tryPerformCapability(
-                      player,
-                      stack,
-                      hand,
-                      PECapabilities.PROJECTILE_SHOOTER_ITEM_CAPABILITY,
-                      IProjectileShooter::shootProjectile)) {
+                  && projectile.shootProjectile(player, stack, hand)) {
                 PlayerHelper.swingItem(player, hand);
+                return;
               }
 
               if (hand == InteractionHand.MAIN_HAND

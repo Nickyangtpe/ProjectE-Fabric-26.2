@@ -40,7 +40,7 @@ public class GemHelmet extends GemArmorBase {
   public static void toggleNightVision(ItemStack helm, Player player) {
     boolean oldValue = hasNightVision(helm);
     helm.set(PEDataComponentTypes.NIGHT_VISION.get(), !oldValue);
-    player.sendSystemMessage(getComponent(!oldValue));
+    PlayerHelper.sendOverlayMessage(player, getComponent(!oldValue));
   }
 
   public void appendHoverText(

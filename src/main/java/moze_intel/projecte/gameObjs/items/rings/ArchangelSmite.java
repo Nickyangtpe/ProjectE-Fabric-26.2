@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import moze_intel.projecte.PECore;
 import moze_intel.projecte.api.block_entity.IDMPedestal;
-import moze_intel.projecte.api.capabilities.item.IPedestalItem;
+import moze_intel.projecte.api.capabilities.item.IPedestalRangeItem;
 import moze_intel.projecte.api.proxy.IEMCProxy;
 import moze_intel.projecte.compat.util.FakePlayerFactory;
 import moze_intel.projecte.config.ProjectEConfig;
@@ -34,7 +34,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
 
-public class ArchangelSmite extends PEToggleItem implements IPedestalItem {
+public class ArchangelSmite extends PEToggleItem implements IPedestalRangeItem {
   public ArchangelSmite(Properties props) {
     super(props.component(PEDataComponentTypes.STORED_EMC, 0L));
     AttackBlockCallback.EVENT.register(

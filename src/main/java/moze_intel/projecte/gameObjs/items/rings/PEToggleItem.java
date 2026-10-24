@@ -4,6 +4,8 @@ import moze_intel.projecte.api.capabilities.item.IModeChanger;
 import moze_intel.projecte.gameObjs.items.ItemPE;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
 import moze_intel.projecte.gameObjs.registries.PESoundEvents;
+import moze_intel.projecte.utils.PlayerHelper;
+import moze_intel.projecte.utils.text.PELang;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.player.Player;
@@ -40,6 +42,11 @@ public abstract class PEToggleItem extends ItemPE implements IModeChanger<Boolea
             1.0F,
             1.0F);
     stack.set(PEDataComponentTypes.ACTIVE, !isActive);
+    if (!player.level().isClientSide()) {
+      PlayerHelper.sendOverlayMessage(
+          player,
+          (isActive ? PELang.GEM_DISABLED : PELang.GEM_ENABLED).translate());
+    }
     return true;
   }
 }

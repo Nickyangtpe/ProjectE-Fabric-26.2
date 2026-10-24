@@ -4,6 +4,7 @@ import java.util.List;
 import moze_intel.projecte.api.block_entity.IDMPedestal;
 import moze_intel.projecte.api.capabilities.PECapabilities;
 import moze_intel.projecte.api.capabilities.item.IPedestalItem;
+import moze_intel.projecte.api.capabilities.item.IPedestalRangeItem;
 import moze_intel.projecte.compat.capabilities.ICapabilityProvider;
 import moze_intel.projecte.compat.items.IItemHandler;
 import moze_intel.projecte.compat.items.IItemHandlerModifiable;
@@ -40,7 +41,10 @@ public class DMPedestalBlockEntity extends EmcBlockEntity implements IDMPedestal
               && !DMPedestalBlockEntity.this.level.isClientSide()) {
             BlockState state = DMPedestalBlockEntity.this.getBlockState();
             DMPedestalBlockEntity.this.level.sendBlockUpdated(
-                DMPedestalBlockEntity.this.worldPosition, state, state, Block.UPDATE_IMMEDIATE);
+                DMPedestalBlockEntity.this.worldPosition,
+                state,
+                state,
+                Block.UPDATE_CLIENTS | Block.UPDATE_IMMEDIATE);
           }
         }
       };
@@ -137,6 +141,15 @@ public class DMPedestalBlockEntity extends EmcBlockEntity implements IDMPedestal
   @Override
   public AABB getEffectBounds() {
     return new AABB(this.worldPosition).inflate(4.0);
+  }
+
+  @Nullable
+  public AABB getItemEffectBounds() {
+    ItemStack stack = this.inventory.getStackInSlot(0);
+    IPedestalItem pedestalItem = PECapabilities.PEDESTAL_ITEM_CAPABILITY.find(stack, null);
+    return pedestalItem instanceof IPedestalRangeItem rangeItem
+        ? rangeItem.getPedestalEffectBounds(stack, this.worldPosition, this)
+        : null;
   }
 
   @Override

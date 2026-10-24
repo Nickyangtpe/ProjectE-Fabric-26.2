@@ -102,7 +102,7 @@ public class Pedestal extends Block
 
   public boolean cancelCreativeBreak(Level level, BlockPos pos, Player player, BlockState state) {
     if (player.isCreative() && this.dropItem(level, pos)) {
-      level.sendBlockUpdated(pos, state, state, 8);
+      level.sendBlockUpdated(pos, state, state, Block.UPDATE_CLIENTS | Block.UPDATE_IMMEDIATE);
       return true;
     } else {
       return false;
@@ -146,7 +146,7 @@ public class Pedestal extends Block
         IPedestalItem pedestalItem = PECapabilities.PEDESTAL_ITEM_CAPABILITY.find(item, null);
         if (pedestalItem != null) {
           pedestal.setActive(level, pos, !pedestal.getActive());
-          level.sendBlockUpdated(pos, state, state, 8);
+          level.sendBlockUpdated(pos, state, state, Block.UPDATE_CLIENTS | Block.UPDATE_IMMEDIATE);
         }
       } else if (!stack.isEmpty() && item.isEmpty()) {
         pedestal.getInventory().setStackInSlot(0, stack.split(1));

@@ -19,6 +19,8 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.HitResult.Type;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
 import org.jetbrains.annotations.Nullable;
@@ -48,8 +50,16 @@ public class PedestalRenderer
     // render state and is invisible in-world.
     BlockEntityRenderer.super.extractRenderState(
         pedestal, state, partialTick, cameraPos, crumblingOverlay);
-    state.debugBounds = Minecraft.getInstance().options.keyDebugShowHitboxes.isDown();
-    state.effectBounds = pedestal.getEffectBounds();
+    Minecraft minecraft = Minecraft.getInstance();
+    state.debugBounds = minecraft.options.keyDebugShowHitboxes.isDown();
+    AABB itemEffectBounds = pedestal.getItemEffectBounds();
+    state.rangePreview =
+        itemEffectBounds != null
+            && minecraft.hitResult instanceof BlockHitResult hit
+            && hit.getType() == Type.BLOCK
+            && hit.getBlockPos().equals(pedestal.getBlockPos());
+    state.effectBounds = itemEffectBounds == null ? pedestal.getEffectBounds() : itemEffectBounds;
+    state.active = pedestal.getActive();
     state.hasItem = false;
     state.itemRenderState.clear();
     if (!pedestal.isRemoved() && pedestal.getLevel() != null) {
@@ -70,6 +80,7 @@ public class PedestalRenderer
       state.bobOffset = Mth.sin(((float) gameTime + partialTick) / 10.0F) * 0.1F + 0.1F;
       state.rotation = ((float) gameTime + partialTick) / 20.0F;
       state.tilt = Mth.sin(((float) gameTime + partialTick) / 16.0F) * 0.035F;
+      state.rangePulse = Mth.sin(((float) gameTime + partialTick) / 6.0F) * 0.25F + 1.75F;
     }
   }
 
@@ -78,11 +89,37 @@ public class PedestalRenderer
       PoseStack matrix,
       SubmitNodeCollector renderer,
       CameraRenderState cameraState) {
-    if (state.debugBounds) {
+    if (state.debugBounds || state.rangePreview) {
       BlockPos pos = state.blockPos;
       AABB localBounds = state.effectBounds.move(-pos.getX(), -pos.getY(), -pos.getZ());
+      int color =
+          state.rangePreview ? (state.active ? 0xE62FE6C4 : 0xE6FFB347) : 0xFFFF00FF;
       renderer.submitShapeOutline(
-          matrix, Shapes.create(localBounds), RenderTypes.lines(), -65281, 1.0F, true);
+          matrix,
+          Shapes.create(localBounds),
+          state.rangePreview ? RenderTypes.linesTranslucent() : RenderTypes.lines(),
+          color,
+          state.rangePreview ? state.rangePulse : 1.0F,
+          true);
+      if (state.rangePreview) {
+        AABB innerBounds = localBounds.deflate(0.06);
+        AABB footprint =
+            new AABB(
+                localBounds.minX + 0.03,
+                0.025,
+                localBounds.minZ + 0.03,
+                localBounds.maxX - 0.03,
+                0.035,
+                localBounds.maxZ - 0.03);
+        int accent = state.active ? 0x8039FFE0 : 0x80FFD080;
+        renderer.submitShapeOutline(
+            matrix,
+            Shapes.or(Shapes.create(innerBounds), Shapes.create(footprint)),
+            RenderTypes.linesTranslucent(),
+            accent,
+            1.0F,
+            true);
+      }
     }
 
     if (state.hasItem) {
@@ -105,9 +142,12 @@ public class PedestalRenderer
     private final ItemStackRenderState itemRenderState = new ItemStackRenderState();
     private AABB effectBounds = AABB.ofSize(Vec3.ZERO, 1.0, 1.0, 1.0);
     private boolean debugBounds;
+    private boolean rangePreview;
+    private boolean active;
     private boolean hasItem;
     private float bobOffset;
     private float rotation;
     private float tilt;
+    private float rangePulse = 1.75F;
   }
 }

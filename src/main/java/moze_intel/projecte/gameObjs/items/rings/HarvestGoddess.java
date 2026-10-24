@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import moze_intel.projecte.api.block_entity.IDMPedestal;
-import moze_intel.projecte.api.capabilities.item.IPedestalItem;
+import moze_intel.projecte.api.capabilities.item.IPedestalRangeItem;
 import moze_intel.projecte.compat.common.SpecialPlantable;
 import moze_intel.projecte.compat.event.EventHooks;
 import moze_intel.projecte.compat.event.entity.player.BonemealEvent;
@@ -44,7 +44,7 @@ import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
 
-public class HarvestGoddess extends PEToggleItem implements IPedestalItem {
+public class HarvestGoddess extends PEToggleItem implements IPedestalRangeItem {
   public HarvestGoddess(Properties props) {
     super(
         props

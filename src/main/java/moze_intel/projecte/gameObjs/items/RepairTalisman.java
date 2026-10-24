@@ -7,7 +7,7 @@ import moze_intel.projecte.api.block_entity.IDMPedestal;
 import moze_intel.projecte.api.capabilities.PECapabilities;
 import moze_intel.projecte.api.capabilities.item.IAlchBagItem;
 import moze_intel.projecte.api.capabilities.item.IAlchChestItem;
-import moze_intel.projecte.api.capabilities.item.IPedestalItem;
+import moze_intel.projecte.api.capabilities.item.IPedestalRangeItem;
 import moze_intel.projecte.compat.capabilities.Capabilities;
 import moze_intel.projecte.compat.capabilities.RegisterCapabilitiesEvent;
 import moze_intel.projecte.compat.items.IItemHandler;
@@ -34,7 +34,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public class RepairTalisman extends ItemPE
-    implements IAlchBagItem, IAlchChestItem, IPedestalItem, ICapabilityAware {
+    implements IAlchBagItem, IAlchChestItem, IPedestalRangeItem, ICapabilityAware {
   private static final BiPredicate<ItemStack, Void> CAN_REPAIR_ITEM =
       (stack, ignored) ->
           !stack.isEmpty()

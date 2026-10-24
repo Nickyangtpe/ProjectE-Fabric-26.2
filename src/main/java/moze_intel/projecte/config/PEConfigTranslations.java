@@ -10,6 +10,22 @@ public enum PEConfigTranslations implements IConfigTranslation {
       "client.philo_overlay",
       "Pulsating Overlay",
       "The Philosopher's Stone overlay softly pulsates."),
+  CLIENT_CONTEXTUAL_HUD(
+      "client.context_hud",
+      "Contextual Item HUD",
+      "Show a compact mode, charge, and key-hint panel while holding ProjectE items."),
+  CLIENT_CONTEXTUAL_HUD_ICON(
+      "client.context_hud.icon", "HUD Item Icon", "Show the held item icon in the contextual HUD."),
+  CLIENT_CONTEXTUAL_HUD_MODE(
+      "client.context_hud.mode", "HUD Mode", "Show the current item mode in the contextual HUD."),
+  CLIENT_CONTEXTUAL_HUD_CHARGE(
+      "client.context_hud.charge",
+      "HUD Charge",
+      "Show the charge level and segmented charge bar in the contextual HUD."),
+  CLIENT_CONTEXTUAL_HUD_HINTS(
+      "client.context_hud.hints",
+      "HUD Key Hints",
+      "Show the available ProjectE key bindings in the contextual HUD."),
   CLIENT_TOOLTIPS(
       "client.tooltips",
       "Tooltip Settings",

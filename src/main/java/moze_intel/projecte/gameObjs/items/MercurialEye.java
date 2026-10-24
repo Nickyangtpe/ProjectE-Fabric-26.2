@@ -122,7 +122,7 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
     }
   }
 
-  private void playNoEMCSound(Player player) {
+  private void playFailureSound(Player player) {
     player
         .level()
         .playSound(
@@ -134,6 +134,11 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
             SoundSource.PLAYERS,
             1.0F,
             1.0F);
+  }
+
+  private void showFailure(Player player, PELang message) {
+    this.playFailureSound(player);
+    PlayerHelper.sendOverlayMessage(player, message.translate());
   }
 
   private InteractionResult formBlocks(
@@ -163,7 +168,7 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
 
     ItemStack klein = inventory.getStackInSlot(0);
     if (PECapabilities.EMC_HOLDER_ITEM_CAPABILITY.find(klein, null) == null) {
-      this.playNoEMCSound(player);
+      this.showFailure(player, PELang.MERCURIAL_EYE_NO_KLEIN_STAR);
       return InteractionResult.FAIL;
     }
 
@@ -188,10 +193,15 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
       newState = ItemHelper.stackToState(target, context);
       newBlockEmc = IEMCProxy.INSTANCE.getValue(target);
       if (newBlockEmc == 0L) {
+        this.showFailure(player, PELang.MERCURIAL_EYE_INVALID_TARGET);
         return InteractionResult.FAIL;
       }
     } else {
-      if (startingBlockEmc == 0L || !mode.isExtension()) {
+      if (!mode.isExtension()) {
+        this.showFailure(player, PELang.MERCURIAL_EYE_NO_TARGET);
+        return InteractionResult.FAIL;
+      } else if (startingBlockEmc == 0L) {
+        this.showFailure(player, PELang.MERCURIAL_EYE_INVALID_TARGET);
         return InteractionResult.FAIL;
       }
 
@@ -202,6 +212,7 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
     }
 
     if (newState != null && !newState.isAir()) {
+      ActionFeedback feedback = new ActionFeedback();
       NonNullList<ItemStack> drops = NonNullList.create();
       int charge = this.getCharge(eye);
       int hitTargets = 0;
@@ -226,7 +237,8 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
               offsetBlockEmc,
               newBlockEmc,
               drops,
-              context)) {
+              context,
+              feedback)) {
             hitTargets++;
           }
         } else if (this.doBlockPlace(
@@ -239,19 +251,38 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
             startingBlockEmc,
             newBlockEmc,
             drops,
-            context)) {
+            context,
+            feedback)) {
           hitTargets++;
         }
       } else if (mode == MercurialEye.MercurialEyeMode.PILLAR) {
         AABB bounds = this.getBounds(startingPos, facing, 1, 3 * charge + 2);
         hitTargets +=
             this.fillGaps(
-                eye, player, level, context, startingState, newState, newBlockEmc, bounds, drops);
+                eye,
+                player,
+                level,
+                context,
+                startingState,
+                newState,
+                newBlockEmc,
+                bounds,
+                drops,
+                feedback);
       } else if (mode == MercurialEye.MercurialEyeMode.EXTENSION_CLASSIC) {
         AABB bounds = this.getBounds(startingPos, facing, charge, 0);
         hitTargets +=
             this.fillGaps(
-                eye, player, level, context, startingState, newState, newBlockEmc, bounds, drops);
+                eye,
+                player,
+                level,
+                context,
+                startingState,
+                newState,
+                newBlockEmc,
+                bounds,
+                drops,
+                feedback);
       } else if (mode == MercurialEye.MercurialEyeMode.TRANSMUTATION_CLASSIC) {
         AABB bounds = this.getBounds(startingPos, facing, charge, 0);
 
@@ -268,7 +299,8 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
                   startingBlockEmc,
                   newBlockEmc,
                   drops,
-                  context)) {
+                  context,
+                  feedback)) {
             hitTargets++;
           }
         }
@@ -310,7 +342,8 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
                           offsetBlockEmc,
                           newBlockEmc,
                           drops,
-                          context);
+                          context,
+                          feedback);
                 }
               } else if (mode == MercurialEye.MercurialEyeMode.TRANSMUTATION) {
                 hit =
@@ -324,7 +357,8 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
                         startingBlockEmc,
                         newBlockEmc,
                         drops,
-                        context);
+                        context,
+                        feedback);
               }
 
               if (hit) {
@@ -366,6 +400,7 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
 
       return InteractionResult.CONSUME;
     } else {
+      this.showFailure(player, PELang.MERCURIAL_EYE_UNPLACEABLE_TARGET);
       return InteractionResult.FAIL;
     }
   }
@@ -380,7 +415,8 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
       long oldEMC,
       long newEMC,
       NonNullList<ItemStack> drops,
-      BlockPlaceContext context) {
+      BlockPlaceContext context,
+      ActionFeedback feedback) {
     if (oldState.hasBlockEntity()) {
       return false;
     }
@@ -396,7 +432,7 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
     }
 
     return this.doBlockPlace(
-        player, level, oldState, placePos, newState, eye, oldEMC, newEMC, drops);
+        player, level, oldState, placePos, newState, eye, oldEMC, newEMC, drops, feedback);
   }
 
   private boolean doBlockPlace(
@@ -408,7 +444,8 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
       ItemStack eye,
       long oldEMC,
       long newEMC,
-      NonNullList<ItemStack> drops) {
+      NonNullList<ItemStack> drops,
+      ActionFeedback feedback) {
     if (oldState != newState && !oldState.hasBlockEntity()) {
       IItemHandler inventory = Capabilities.ItemHandler.ITEM.find(eye, null);
       if (inventory == null) {
@@ -417,8 +454,11 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
 
       ItemStack klein = inventory.getStackInSlot(0);
       IItemEmcHolder emcHolder = PECapabilities.EMC_HOLDER_ITEM_CAPABILITY.find(klein, null);
-      if (emcHolder == null || emcHolder.getStoredEmc(klein) < newEMC - oldEMC) {
-        this.playNoEMCSound(player);
+      if (emcHolder == null || !(inventory instanceof IItemHandlerModifiable modifiable)) {
+        if (!feedback.failureShown) {
+          this.showFailure(player, PELang.EMC_INSUFFICIENT);
+          feedback.failureShown = true;
+        }
         return false;
       }
 
@@ -426,23 +466,34 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
         return false;
       }
 
+      ItemStack replacement = klein.copy();
+      if (oldEMC > newEMC) {
+        long refund = oldEMC - newEMC;
+        if (emcHolder.insertEmc(replacement, refund, IEmcStorage.EmcAction.EXECUTE) != refund) {
+          if (!feedback.failureShown) {
+            this.showFailure(player, PELang.EMC_STORAGE_FULL);
+            feedback.failureShown = true;
+          }
+          return false;
+        }
+      } else if (oldEMC != newEMC) {
+        long cost = newEMC - oldEMC;
+        if (emcHolder.extractEmc(replacement, cost, IEmcStorage.EmcAction.EXECUTE) != cost) {
+          if (!feedback.failureShown) {
+            this.showFailure(player, PELang.EMC_INSUFFICIENT);
+            feedback.failureShown = true;
+          }
+          return false;
+        }
+      }
+
       ServerPlayer serverPlayer = (ServerPlayer) player;
       if (PlayerHelper.checkedReplaceBlock(serverPlayer, level, placePos, newState)) {
-        ItemStack replacement = klein.copy();
-        if (oldEMC > newEMC) {
-          emcHolder.insertEmc(replacement, oldEMC - newEMC, IEmcStorage.EmcAction.EXECUTE);
-        } else if (oldEMC != newEMC) {
-          if (oldEMC == 0L) {
-            WorldHelper.collectBlockDrops(
-                oldState, (ServerLevel) level, placePos, null, player, eye, drops);
-          }
-
-          emcHolder.extractEmc(replacement, newEMC - oldEMC, IEmcStorage.EmcAction.EXECUTE);
+        if (oldEMC == 0L && oldEMC != newEMC) {
+          WorldHelper.collectBlockDrops(
+              oldState, (ServerLevel) level, placePos, null, player, eye, drops);
         }
-
-        if (inventory instanceof IItemHandlerModifiable modifiable) {
-          modifiable.setStackInSlot(0, replacement);
-        }
+        modifiable.setStackInSlot(0, replacement);
 
         return true;
       } else {
@@ -462,7 +513,8 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
       BlockState newState,
       long newBlockEmc,
       AABB bounds,
-      NonNullList<ItemStack> drops) {
+      NonNullList<ItemStack> drops,
+      ActionFeedback feedback) {
     int hitTargets = 0;
 
     for (BlockPos pos : WorldHelper.getPositionsInBox(bounds)) {
@@ -473,9 +525,10 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
         if (adjustedContext.replacingClickedOnBlock()) {
           BlockState placeState = level.getBlockState(pos);
           long placeBlockEmc = IEMCProxy.INSTANCE.getValue(placeState.getBlock());
+          BlockState stateToPlace = newState;
           if (!newState.getBlock().getStateDefinition().getProperties().isEmpty()) {
-            BlockState forPlacement = newState.getBlock().getStateForPlacement(adjustedContext);
-            if (forPlacement == null) {
+            stateToPlace = newState.getBlock().getStateForPlacement(adjustedContext);
+            if (stateToPlace == null) {
               continue;
             }
           }
@@ -485,11 +538,12 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
               level,
               placeState,
               pos.immutable(),
-              newState,
+              stateToPlace,
               eye,
               placeBlockEmc,
               newBlockEmc,
-              drops)) {
+              drops,
+              feedback)) {
             hitTargets++;
           }
         }
@@ -497,6 +551,10 @@ public class MercurialEye extends ItemMode<MercurialEye.MercurialEyeMode>
     }
 
     return hitTargets;
+  }
+
+  private static class ActionFeedback {
+    private boolean failureShown;
   }
 
   private AABB getBounds(

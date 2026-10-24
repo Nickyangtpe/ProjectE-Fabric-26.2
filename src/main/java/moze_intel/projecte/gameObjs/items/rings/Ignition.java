@@ -3,7 +3,7 @@ package moze_intel.projecte.gameObjs.items.rings;
 import java.util.ArrayList;
 import java.util.List;
 import moze_intel.projecte.api.block_entity.IDMPedestal;
-import moze_intel.projecte.api.capabilities.item.IPedestalItem;
+import moze_intel.projecte.api.capabilities.item.IPedestalRangeItem;
 import moze_intel.projecte.api.capabilities.item.IProjectileShooter;
 import moze_intel.projecte.compat.capabilities.RegisterCapabilitiesEvent;
 import moze_intel.projecte.compat.common.ItemAbilities;
@@ -36,7 +36,7 @@ import net.minecraft.world.level.block.entity.BlockEntity;
 import org.jetbrains.annotations.NotNull;
 
 public class Ignition extends PEToggleItem
-    implements IPedestalItem, IFireProtector, IProjectileShooter, ICapabilityAware {
+    implements IPedestalRangeItem, IFireProtector, IProjectileShooter, ICapabilityAware {
   public Ignition(Properties props) {
     super(
         props

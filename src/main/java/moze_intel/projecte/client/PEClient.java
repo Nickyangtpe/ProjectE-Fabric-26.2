@@ -27,6 +27,7 @@ import moze_intel.projecte.gameObjs.registries.PEEntityTypes;
 import moze_intel.projecte.gameObjs.sound.MovingSoundSWRG;
 import moze_intel.projecte.network.commands.client.DumpMissingEmc;
 import moze_intel.projecte.rendering.ChestRenderer;
+import moze_intel.projecte.rendering.ContextualItemHUD;
 import moze_intel.projecte.rendering.EntitySpriteRenderer;
 import moze_intel.projecte.rendering.LayerYue;
 import moze_intel.projecte.rendering.PedestalRenderer;
@@ -84,6 +85,7 @@ public final class PEClient {
     registerRenderers();
     registerClientEvents();
     TransmutationRenderingOverlay.register();
+    ContextualItemHUD.register();
   }
 
   private static void registerScreens() {

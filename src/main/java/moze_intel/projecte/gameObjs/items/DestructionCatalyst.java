@@ -7,6 +7,7 @@ import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
 import moze_intel.projecte.gameObjs.registries.PESoundEvents;
 import moze_intel.projecte.utils.PlayerHelper;
 import moze_intel.projecte.utils.WorldHelper;
+import moze_intel.projecte.utils.text.PELang;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
@@ -46,6 +47,7 @@ public class DestructionCatalyst extends ItemPE implements IItemCharge, IBarHelp
     ItemStack stack = ctx.getItemInHand();
     int numRows = this.calculateDepthFromCharge(stack);
     boolean hasAction = false;
+    boolean insufficientEmc = false;
     List<ItemStack> drops = new ArrayList<>();
     Vec3 dropPosition = Vec3.atLowerCornerOf(ctx.getClickedPos());
 
@@ -56,34 +58,37 @@ public class DestructionCatalyst extends ItemPE implements IItemCharge, IBarHelp
       if (!state.isAir()) {
         float hardness = state.getDestroySpeed(level, pos);
         if (hardness != -1.0F && !(hardness >= 50.0F)) {
-          if (!consumeFuel(player, stack, 8L, true)) {
+          pos = pos.immutable();
+          if (!PlayerHelper.hasBreakPermission((ServerPlayer) player, level, pos)) {
+            continue;
+          }
+          if (!consumeFuel(player, stack, 8L, false)) {
+            insufficientEmc = true;
             break;
           }
 
+          BlockEntity blockEntity = WorldHelper.getBlockEntity(level, pos);
+          if (!level.removeBlock(pos, false)) {
+            continue;
+          }
+          consumeFuel(player, stack, 8L, true);
           hasAction = true;
-          pos = pos.immutable();
-          if (PlayerHelper.hasBreakPermission((ServerPlayer) player, level, pos)) {
-            BlockEntity blockEntity = WorldHelper.getBlockEntity(level, pos);
-            if (!level.removeBlock(pos, false)) {
-              continue;
-            }
-            WorldHelper.collectBlockDrops(
-                state, (ServerLevel) level, pos, blockEntity, player, stack, drops, dropPosition);
-            if (level.getRandom().nextInt(8) == 0) {
-              ((ServerLevel) level)
-                  .sendParticles(
-                      level.getRandom().nextBoolean()
-                          ? ParticleTypes.POOF
-                          : ParticleTypes.LARGE_SMOKE,
-                      pos.getX(),
-                      pos.getY(),
-                      pos.getZ(),
-                      2,
-                      0.0,
-                      0.0,
-                      0.0,
-                      0.05);
-            }
+          WorldHelper.collectBlockDrops(
+              state, (ServerLevel) level, pos, blockEntity, player, stack, drops, dropPosition);
+          if (level.getRandom().nextInt(8) == 0) {
+            ((ServerLevel) level)
+                .sendParticles(
+                    level.getRandom().nextBoolean()
+                        ? ParticleTypes.POOF
+                        : ParticleTypes.LARGE_SMOKE,
+                    pos.getX(),
+                    pos.getY(),
+                    pos.getZ(),
+                    2,
+                    0.0,
+                    0.0,
+                    0.0,
+                    0.05);
           }
         }
       }
@@ -100,6 +105,9 @@ public class DestructionCatalyst extends ItemPE implements IItemCharge, IBarHelp
           SoundSource.PLAYERS,
           1.0F,
           1.0F);
+    }
+    if (insufficientEmc) {
+      PlayerHelper.sendOverlayMessage(player, PELang.EMC_INSUFFICIENT.translate());
     }
 
     return InteractionResult.CONSUME;

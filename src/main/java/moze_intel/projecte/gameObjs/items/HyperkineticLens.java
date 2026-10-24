@@ -3,9 +3,12 @@ package moze_intel.projecte.gameObjs.items;
 import java.util.function.IntFunction;
 import moze_intel.projecte.api.capabilities.item.IItemCharge;
 import moze_intel.projecte.api.capabilities.item.IProjectileShooter;
+import moze_intel.projecte.config.ProjectEConfig;
 import moze_intel.projecte.gameObjs.entity.EntityLensProjectile;
 import moze_intel.projecte.gameObjs.registries.PEDataComponentTypes;
 import moze_intel.projecte.gameObjs.registries.PESoundEvents;
+import moze_intel.projecte.utils.PlayerHelper;
+import moze_intel.projecte.utils.text.PELang;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.ByIdMap;
 import net.minecraft.util.ByIdMap.OutOfBoundsStrategy;
@@ -29,7 +32,9 @@ public class HyperkineticLens extends ItemPE
   @NotNull
   public InteractionResult use(Level level, Player player, @NotNull InteractionHand hand) {
     ItemStack stack = player.getItemInHand(hand);
-    if (!level.isClientSide()) {
+    if (!level.isClientSide()
+        && PlayerHelper.checkCooldown(
+            player, stack.getItem(), ProjectEConfig.server.cooldown.player.projectile)) {
       this.shootProjectile(player, stack, hand);
     }
 
@@ -42,6 +47,7 @@ public class HyperkineticLens extends ItemPE
     HyperkineticLens.ExplosiveLensCharge charge =
         HyperkineticLens.ExplosiveLensCharge.BY_ID.apply(this.getCharge(stack));
     if (!consumeFuel(player, stack, charge.emcCost(), true)) {
+      PlayerHelper.sendOverlayMessage(player, PELang.EMC_INSUFFICIENT.translate());
       return false;
     }
 

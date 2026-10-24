@@ -10,7 +10,9 @@
       "moze_intel.projecte.gametest.BlockBreakingGameTests",
       "moze_intel.projecte.gametest.EmcCommandGameTests",
       "moze_intel.projecte.gametest.ChestAutomationGameTests",
-      "moze_intel.projecte.gametest.TransmutationGameTests"
+      "moze_intel.projecte.gametest.TransmutationGameTests",
+      "moze_intel.projecte.gametest.PedestalGameTests",
+      "moze_intel.projecte.integration.jade.JadeIntegrationGameTests"
     ]
   },
   "depends": {
