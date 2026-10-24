@@ -186,8 +186,6 @@ build/libs/ProjectE-1.2.0-sources.jar
 在 Windows PowerShell 使用 JDK 25 時，先設定並確認實際使用的 JVM：
 
 ```powershell
-$env:JAVA_HOME = "C:\Users\Nicky\Downloads\jdk-25_windows-x64_bin\jdk-25.0.4.1"
-$env:Path = "$env:JAVA_HOME\bin;$env:Path"
 java -version
 .\gradlew.bat --version
 
