@@ -4,6 +4,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import java.util.List;
 import moze_intel.projecte.PECore;
 import moze_intel.projecte.compat.client.gui.FabricMenuScreenRegistry;
+import moze_intel.projecte.compat.server.ServerLifecycleHooks;
 import moze_intel.projecte.emc.EMCMappingHandler;
 import moze_intel.projecte.emc.components.DataComponentManager;
 import moze_intel.projecte.events.TickEvents;
@@ -25,7 +26,9 @@ import moze_intel.projecte.gameObjs.registries.PEBlocks;
 import moze_intel.projecte.gameObjs.registries.PEContainerTypes;
 import moze_intel.projecte.gameObjs.registries.PEEntityTypes;
 import moze_intel.projecte.gameObjs.sound.MovingSoundSWRG;
+import moze_intel.projecte.network.LargeDataSync;
 import moze_intel.projecte.network.commands.client.DumpMissingEmc;
+import moze_intel.projecte.network.packets.to_server.RequestEmcSyncPKT;
 import moze_intel.projecte.rendering.ChestRenderer;
 import moze_intel.projecte.rendering.ContextualItemHUD;
 import moze_intel.projecte.rendering.EntitySpriteRenderer;
@@ -41,6 +44,8 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents.Load;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientEntityEvents.Unload;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.EndTick;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.rendering.v1.BlockEntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -124,6 +129,28 @@ public final class PEClient {
   }
 
   private static void registerClientEvents() {
+    ClientPlayConnectionEvents.INIT.register(
+        (handler, minecraft) -> {
+          LargeDataSync.resetClient();
+          if (ServerLifecycleHooks.getCurrentServer() == null) {
+            EMCMappingHandler.clearEmcMap();
+          }
+        });
+    ClientPlayConnectionEvents.DISCONNECT.register(
+        (handler, minecraft) -> {
+          LargeDataSync.resetClient();
+          if (ServerLifecycleHooks.getCurrentServer() == null) {
+            EMCMappingHandler.clearEmcMap();
+          }
+        });
+    ClientPlayConnectionEvents.JOIN.register(
+        (handler, sender, minecraft) -> {
+          // Request a snapshot after play-channel negotiation. The initial server data-pack
+          // callback may run before a client's fragmented-data channel is advertised.
+          if (ClientPlayNetworking.canSend(RequestEmcSyncPKT.TYPE)) {
+            LargeDataSync.requestClientSync();
+          }
+        });
     ClientEntityEvents.ENTITY_LOAD.register(
         (Load)
             (entity, level) -> {
@@ -144,10 +171,13 @@ public final class PEClient {
                 lastClientRecipeLevel = null;
               } else if (lastClientRecipeLevel != minecraft.level) {
                 lastClientRecipeLevel = minecraft.level;
-                DataComponentManager.updateCachedValues(EMCMappingHandler::getStoredEmcValue);
+                if (ServerLifecycleHooks.getCurrentServer() == null) {
+                  DataComponentManager.updateCachedValues(EMCMappingHandler::getStoredEmcValue);
+                }
               }
 
               if (minecraft.player != null) {
+                LargeDataSync.tickClient();
                 TickEvents.onClientTick(minecraft.player);
                 ItemStack boots = minecraft.player.getItemBySlot(EquipmentSlot.FEET);
                 if (boots.getItem() instanceof GemFeet gemFeet) {

@@ -12,6 +12,7 @@ import moze_intel.projecte.gameObjs.container.TransmutationContainer;
 import moze_intel.projecte.gameObjs.items.rings.ArchangelSmite;
 import moze_intel.projecte.gameObjs.registries.PEItems;
 import moze_intel.projecte.network.packets.IPEPacket;
+import moze_intel.projecte.network.packets.to_client.FragmentedSyncPKT;
 import moze_intel.projecte.network.packets.to_client.NovaExplosionSyncPKT;
 import moze_intel.projecte.network.packets.to_client.SyncEmcPKT;
 import moze_intel.projecte.network.packets.to_client.SyncFuelMapperPKT;
@@ -26,6 +27,7 @@ import moze_intel.projecte.network.packets.to_client.knowledge.KnowledgeSyncEmcP
 import moze_intel.projecte.network.packets.to_client.knowledge.KnowledgeSyncInputsAndLocksPKT;
 import moze_intel.projecte.network.packets.to_client.knowledge.KnowledgeSyncPKT;
 import moze_intel.projecte.network.packets.to_server.KeyPressPKT;
+import moze_intel.projecte.network.packets.to_server.RequestEmcSyncPKT;
 import moze_intel.projecte.network.packets.to_server.SearchUpdatePKT;
 import moze_intel.projecte.network.packets.to_server.UpdateGemModePKT;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -55,6 +57,7 @@ public final class PacketHandler {
 
   private void registerClientToServer(PacketHandler.PacketRegistrar registrar) {
     registrar.play(KeyPressPKT.TYPE, KeyPressPKT.STREAM_CODEC);
+    registrar.play(RequestEmcSyncPKT.TYPE, RequestEmcSyncPKT.STREAM_CODEC);
     this.activateArchangel =
         registrar.playInstanced(
             PECore.rl("activate_archangel"),
@@ -96,6 +99,7 @@ public final class PacketHandler {
     registrar.play(SyncAllBagDataPKT.TYPE, SyncAllBagDataPKT.STREAM_CODEC);
     registrar.play(SyncBagsDataPKT.TYPE, SyncBagsDataPKT.STREAM_CODEC);
     registrar.play(SyncEmcPKT.TYPE, SyncEmcPKT.STREAM_CODEC);
+    registrar.play(FragmentedSyncPKT.TYPE, FragmentedSyncPKT.STREAM_CODEC);
     registrar.play(SyncOffhandPkt.TYPE, SyncOffhandPkt.STREAM_CODEC);
     registrar.play(SyncFuelMapperPKT.TYPE, SyncFuelMapperPKT.STREAM_CODEC);
     registrar.play(SyncWorldTransmutations.TYPE, SyncWorldTransmutations.STREAM_CODEC);

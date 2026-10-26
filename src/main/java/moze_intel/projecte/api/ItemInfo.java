@@ -47,12 +47,16 @@ public final class ItemInfo {
           ItemInfo::new);
   @NotNull private final Holder<Item> item;
   @NotNull private final DataComponentPatch componentsPatch;
-  private boolean hasCachedHash;
-  private int cachedHashCode;
+  private final int cachedHashCode;
 
   private ItemInfo(@NotNull Holder<Item> item, @NotNull DataComponentPatch componentsPatch) {
     this.item = item;
     this.componentsPatch = componentsPatch;
+    ResourceKey<Item> resourceKey = this.item.unwrap().left().orElse(null);
+    int itemHash = resourceKey == null ? 0 : resourceKey.hashCode();
+    // Publish a fully initialized hash with the immutable key. The old lazy flag could become
+    // visible before the hash on another thread, making existing map entries unfindable.
+    this.cachedHashCode = 31 * itemHash + this.componentsPatch.hashCode();
   }
 
   public static ItemInfo fromItem(
@@ -134,13 +138,6 @@ public final class ItemInfo {
 
   @Override
   public int hashCode() {
-    if (!this.hasCachedHash) {
-      this.hasCachedHash = true;
-      ResourceKey<Item> resourceKey = (ResourceKey<Item>) this.item.unwrap().left().orElse(null);
-      int code = resourceKey == null ? 0 : resourceKey.hashCode();
-      this.cachedHashCode = 31 * code + this.componentsPatch.hashCode();
-    }
-
     return this.cachedHashCode;
   }
 

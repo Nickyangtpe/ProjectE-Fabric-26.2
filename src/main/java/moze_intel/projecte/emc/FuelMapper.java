@@ -14,7 +14,7 @@ import net.minecraft.world.item.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
 public final class FuelMapper {
-  private static HolderSet<Item> FUEL_MAP = HolderSet.empty();
+  private static volatile HolderSet<Item> FUEL_MAP = HolderSet.empty();
 
   public static void loadMap() {
     FUEL_MAP =
@@ -40,7 +40,8 @@ public final class FuelMapper {
   }
 
   public static boolean isStackMaxFuel(ItemStack stack) {
-    return stack.is(FUEL_MAP.get(FUEL_MAP.size() - 1));
+    HolderSet<Item> fuels = FUEL_MAP;
+    return fuels.size() > 0 && stack.is(fuels.get(fuels.size() - 1));
   }
 
   public static ItemStack getFuelUpgrade(ItemStack stack) {

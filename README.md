@@ -109,6 +109,22 @@ data/mymod/emc/projecte.json
 設定、移除及重設後會立即儲存並重新計算 EMC，自動同步所有線上玩家的 EMC 與燃料排序。
 轉化桌顯示也會隨新價格更新，無需再手動執行 `/reload`。
 
+### 大型 EMC 資料與存檔保護
+
+- EMC 價格表與玩家知識資料超過 32 KiB 時會分包同步，完整收齊並驗證校驗碼後才套用。
+  傳輸中維持既有資料；逾時或驗證失敗會自動要求重新同步，重新連線也會取得完整快照。
+- EMC 重算保留上一份完整價格表。映射或資料包讀取失敗時，不會用空表或半份計算結果覆蓋它。
+- `config/ProjectE/custom_emc.json` 使用暫存檔、磁碟 flush 與原子替換儲存，並維護
+  `custom_emc.json.bak`。原檔讀取失敗時會優先復原備份；損壞原檔保留為
+  `custom_emc.corrupt-<UUID>.json`，不會直接改成空設定。
+- 暫時缺少模組或無法辨識 components 的自訂價格會保留原始 entries，後續恢復模組時可重新讀取。
+  已學物品暫時沒有 EMC 時只會停止提供轉化，不會自動刪除玩家的學習紀錄。
+- 每個世界另存 `<世界目錄>/projecte/emc_last_good.json` 與其 `.bak`。若啟動時無法重新計算，
+  且記憶體中沒有完整價格表，會嘗試使用該世界的最後有效快照。
+- 大型分包同步需要 client 與 server 都換成包含此修正的 ProjectE JAR。
+
+舊版已覆寫或刪除、且沒有任何備份的手動 EMC 價格無法憑空重建；需從原設定檔或存檔備份還原。
+
 ## EMI、REI 與 JEI 配方相容性
 
 ProjectE 的一般合成配方使用 Minecraft 26.2 原生 recipe system，包含 shaped、shapeless、smithing、smelting 以及 ProjectE 的特殊配方。因此安裝相容於 Minecraft 26.2／Fabric 的 **EMI、REI 或 JEI** 後，可以直接查看 ProjectE 物品的合成方式與材料。

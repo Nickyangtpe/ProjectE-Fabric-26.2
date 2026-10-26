@@ -6,8 +6,10 @@ import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 import moze_intel.projecte.PECore;
 import moze_intel.projecte.api.ItemInfo;
 import moze_intel.projecte.compat.network.handling.IPayloadContext;
+import moze_intel.projecte.compat.server.ServerLifecycleHooks;
 import moze_intel.projecte.emc.EMCMappingHandler;
 import moze_intel.projecte.gameObjs.container.TransmutationContainer;
+import moze_intel.projecte.network.LargeDataSync;
 import moze_intel.projecte.network.packets.IPEPacket;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.RegistryFriendlyByteBuf;
@@ -33,9 +35,19 @@ public record SyncEmcPKT(Object2LongMap<ItemInfo> data) implements IPEPacket {
   @Override
   public void handle(IPayloadContext context) {
     PECore.debugLog("Receiving EMC data from server.");
-    EMCMappingHandler.updateEmcValues(this.data);
+    // An integrated server already owns the shared JVM map. A delayed client snapshot must
+    // never roll that authoritative map back to an older generation.
+    if (ServerLifecycleHooks.getCurrentServer() == null) {
+      EMCMappingHandler.updateEmcValues(this.data);
+    }
+    LargeDataSync.receivedFullPayload(TYPE.id());
     if (context.player().containerMenu instanceof TransmutationContainer container) {
-      container.transmutationInventory.updateClientTargets(false);
+      try {
+        container.transmutationInventory.updateClientTargets(false);
+      } catch (RuntimeException exception) {
+        PECore.LOGGER.error(
+            "Could not refresh transmutation targets; the received EMC table is retained", exception);
+      }
     }
   }
 

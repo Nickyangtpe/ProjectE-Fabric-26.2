@@ -12,8 +12,6 @@ import org.jetbrains.annotations.NotNull;
 public abstract class AbstractDataComponentHolderNSSTag<TYPE> extends AbstractNSSTag<TYPE>
     implements NSSDataComponentHolder {
   @NotNull private final DataComponentPatch componentsPatch;
-  private boolean hasCachedHash;
-  private int cachedHashCode;
 
   protected AbstractDataComponentHolderNSSTag(
       @NotNull Identifier resourceLocation,
@@ -47,15 +45,11 @@ public abstract class AbstractDataComponentHolderNSSTag<TYPE> extends AbstractNS
 
   @Override
   public int hashCode() {
-    if (this.componentsPatch == null) {
-      this.hasCachedHash = true;
-      this.cachedHashCode = Objects.hash(super.hashCode(), DataComponentPatch.EMPTY);
-    } else if (!this.hasCachedHash) {
-      this.hasCachedHash = true;
-      this.cachedHashCode = Objects.hash(super.hashCode(), this.componentsPatch);
-    }
-
-    return this.cachedHashCode;
+    // The superclass registers tag instances during construction, before the patch is set.
+    // Avoid a partially initialized lazy hash being cached or observed by another thread.
+    DataComponentPatch patch =
+        this.componentsPatch == null ? DataComponentPatch.EMPTY : this.componentsPatch;
+    return 31 * (31 + super.hashCode()) + patch.hashCode();
   }
 
   protected static <TYPE, NSS extends AbstractDataComponentHolderNSSTag<TYPE>>

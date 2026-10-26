@@ -29,7 +29,13 @@ public final class ClientPayloadBridge {
 
     @Override
     public void enqueueWork(Runnable work) {
-      this.context.client().execute(work);
+      this.context.client().execute(
+          () -> {
+            // Queued payloads from a disconnected server must not replace a new session's data.
+            if (this.context.client().getConnection() == this.context.player().connection) {
+              work.run();
+            }
+          });
     }
   }
 }

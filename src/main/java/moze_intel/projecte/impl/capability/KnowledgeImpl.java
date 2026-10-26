@@ -209,7 +209,7 @@ public class KnowledgeImpl implements IKnowledgeProvider {
 
   @Override
   public void sync(@NotNull ServerPlayer player) {
-    PacketDistributor.sendToPlayer(player, new KnowledgeSyncPKT(this.attachment()));
+    PacketDistributor.sendToPlayer(player, new KnowledgeSyncPKT(this.attachment().copy()));
   }
 
   @Override
@@ -274,14 +274,12 @@ public class KnowledgeImpl implements IKnowledgeProvider {
       if (!info.equals(persistentInfo)) {
         if (IEMCProxy.INSTANCE.hasValue(persistentInfo)) {
           toAdd.add(persistentInfo);
+          iterator.remove();
+          hasRemoved = true;
         }
-
-        iterator.remove();
-        hasRemoved = true;
-      } else if (!IEMCProxy.INSTANCE.hasValue(info)) {
-        iterator.remove();
-        hasRemoved = true;
       }
+      // Missing EMC makes an item unavailable for transmutation, not forgotten. Preserve the
+      // learned entry so restoring a data pack or recovering a price also restores access.
     }
 
     return attachment.knowledge.addAll(toAdd) || hasRemoved;

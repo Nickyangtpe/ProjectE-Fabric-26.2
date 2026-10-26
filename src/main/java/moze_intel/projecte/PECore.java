@@ -3,6 +3,7 @@ package moze_intel.projecte;
 import com.mojang.authlib.GameProfile;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +24,7 @@ import moze_intel.projecte.config.IPEConfig;
 import moze_intel.projecte.config.ProjectEConfig;
 import moze_intel.projecte.emc.EMCMappingHandler;
 import moze_intel.projecte.emc.FuelMapper;
+import moze_intel.projecte.emc.pregenerated.PregeneratedEMC;
 import moze_intel.projecte.gameObjs.blocks.DispenserBehaviors;
 import moze_intel.projecte.gameObjs.blocks.ProjectETNT;
 import moze_intel.projecte.gameObjs.registration.DoubleDeferredRegister;
@@ -30,6 +32,7 @@ import moze_intel.projecte.gameObjs.registries.PEAttachmentTypes;
 import moze_intel.projecte.gameObjs.registries.PEAttributes;
 import moze_intel.projecte.impl.TransmutationOffline;
 import moze_intel.projecte.integration.IntegrationHelper;
+import moze_intel.projecte.network.LargeDataSync;
 import moze_intel.projecte.network.PacketHandler;
 import moze_intel.projecte.utils.WorldHelper;
 import moze_intel.projecte.world_transmutation.WorldTransmutationManager;
@@ -45,6 +48,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.CloseableResourceManager;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.world.level.storage.LevelResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -158,8 +162,10 @@ public final class PECore {
 
   private static void onServerStarting(MinecraftServer server) {
     ServerLifecycleHooks.setCurrentServer(server);
+    LargeDataSync.resetServer();
     LOGGER.info("Starting ProjectE server systems");
-    CustomEMCParser.init(server.registryAccess());
+    // Initialize persistent EMC together with the calculation below so a damaged file can
+    // recover from this world's last complete table rather than aborting server startup.
     EMCMappingHandler.loadMappers();
   }
 
@@ -210,7 +216,8 @@ public final class PECore {
   }
 
   private static void calculateEmcValues(MinecraftServer server, ResourceManager resourceManager) {
-    var previousValues = EMCMappingHandler.createPacketData();
+    var previousValues =
+        EMCMappingHandler.isAvailable() ? EMCMappingHandler.createPacketData().data() : null;
     try {
       AbstractNSSTag.clearCreatedTags();
       CustomEMCParser.init(server.registryAccess());
@@ -220,11 +227,60 @@ public final class PECore {
       EMCMappingHandler.map(serverResources, server.registryAccess(), resourceManager);
       lastMappedServer = server;
       LOGGER.info("Registered {} EMC values", EMCMappingHandler.getEmcMapSize());
+      saveLastGoodEmc(server);
     } catch (RuntimeException exception) {
-      EMCMappingHandler.updateEmcValues(previousValues.data());
-      FuelMapper.loadMap();
+      if (previousValues != null) {
+        if (EMCMappingHandler.createPacketData().data() != previousValues) {
+          EMCMappingHandler.updateEmcValues(previousValues);
+          FuelMapper.loadMap();
+        }
+        LOGGER.error(
+            "EMC recalculation failed; all {} previous prices have been retained",
+            previousValues.size(),
+            exception);
+      } else if (restoreLastGoodEmc(server)) {
+        lastMappedServer = server;
+        LOGGER.error(
+            "EMC recalculation failed; recovered {} prices from this world's last complete table",
+            EMCMappingHandler.getEmcMapSize(),
+            exception);
+        return;
+      }
       throw exception;
     }
+  }
+
+  private static Path lastGoodEmcPath(MinecraftServer server) {
+    return server.getWorldPath(LevelResource.ROOT).resolve("projecte").resolve("emc_last_good.json");
+  }
+
+  private static void saveLastGoodEmc(MinecraftServer server) {
+    try {
+      Path path = lastGoodEmcPath(server);
+      var values = EMCMappingHandler.createPacketData().data();
+      if (PregeneratedEMC.write(server.registryAccess(), path, values)) {
+        PregeneratedEMC.write(
+            server.registryAccess(), path.resolveSibling("emc_last_good.json.bak"), values);
+      }
+    } catch (RuntimeException exception) {
+      LOGGER.error(
+          "Could not persist the last complete EMC table; live prices remain available", exception);
+    }
+  }
+
+  private static boolean restoreLastGoodEmc(MinecraftServer server) {
+    Path path = lastGoodEmcPath(server);
+    var restored =
+        PregeneratedEMC.read(server.registryAccess(), path, true)
+            .or(
+                () ->
+                    PregeneratedEMC.read(
+                        server.registryAccess(), path.resolveSibling("emc_last_good.json.bak"), true));
+    if (restored.isEmpty()) {
+      return false;
+    }
+    EMCMappingHandler.restoreEmcValues(restored.get());
+    return true;
   }
 
   private static void syncDataPackContents(ServerPlayer player) {
@@ -233,8 +289,21 @@ public final class PECore {
   }
 
   private static void syncEmcContents(ServerPlayer player) {
-    PacketDistributor.sendToPlayer(player, EMCMappingHandler.createPacketData());
-    PacketDistributor.sendToPlayer(player, FuelMapper.getSyncPacket());
+    if (!EMCMappingHandler.isAvailable()) {
+      LOGGER.warn(
+          "EMC data is not ready for {}; retaining the player's previous price table",
+          player.getName().getString());
+      return;
+    }
+    try {
+      PacketDistributor.sendToPlayer(player, EMCMappingHandler.createPacketData());
+      PacketDistributor.sendToPlayer(player, FuelMapper.getSyncPacket());
+    } catch (RuntimeException exception) {
+      LOGGER.error(
+          "Could not synchronize EMC to {}; server prices have been retained",
+          player.getName().getString(),
+          exception);
+    }
   }
 
   private static void flushPersistentFiles(MinecraftServer server) {
@@ -256,6 +325,7 @@ public final class PECore {
 
   private static void onServerStopped(MinecraftServer server) {
     TransmutationOffline.cleanAll();
+    LargeDataSync.resetServer();
     EMCMappingHandler.clearEmcMap();
     WorldHelper.clearCachedAgeProperties();
     ServerLifecycleHooks.clearCurrentServer(server);

@@ -63,8 +63,7 @@ public class CustomEMCMapper implements IEMCMapper<NormalizedSimpleStack, Long> 
         try (Reader reader = resource.openAsReader()) {
           JsonElement root = JsonParser.parseReader(reader);
           if (!root.isJsonObject()) {
-            PECore.LOGGER.error("Ignoring EMC file {}: root must be a JSON object", resourceId);
-            continue;
+            throw new IllegalArgumentException("EMC root must be a JSON object");
           }
           JsonObject object = root.getAsJsonObject();
           JsonObject values = object.has("values") && object.get("values").isJsonObject()
@@ -74,29 +73,29 @@ public class CustomEMCMapper implements IEMCMapper<NormalizedSimpleStack, Long> 
             if (value.getKey().equals("comment") || value.getKey().equals("values")) {
               continue;
             }
-            if (!value.getValue().isJsonPrimitive()
-                || !value.getValue().getAsJsonPrimitive().isNumber()) {
-              PECore.LOGGER.error(
-                  "Ignoring EMC entry {} in {}: value must be a non-negative integer",
-                  value.getKey(), resourceId);
-              continue;
+            try {
+              if (!value.getValue().isJsonPrimitive()
+                  || !value.getValue().getAsJsonPrimitive().isNumber()) {
+                throw new IllegalArgumentException("Value must be a non-negative integer");
+              }
+              // getAsLong silently truncates fractions and wraps overflowing numbers.
+              long emc = value.getValue().getAsBigDecimal().toBigIntegerExact().longValueExact();
+              if (emc < 0L) {
+                throw new IllegalArgumentException("Value must be non-negative");
+              }
+              String id = value.getKey();
+              boolean tag = id.startsWith("#");
+              Identifier identifier = Identifier.parse(tag ? id.substring(1) : id);
+              NSSItem item = tag ? NSSItem.createTag(identifier) : NSSItem.createItem(identifier);
+              PECore.debugLog("Adding datapack EMC value for {}: {}", id, emc);
+              item.forSelfAndEachElement(mapper, emc, IMappingCollector::setValueBefore);
+            } catch (RuntimeException exception) {
+              throw new IllegalArgumentException("Invalid EMC entry " + value.getKey() + " in " + resourceId, exception);
             }
-            long emc = value.getValue().getAsLong();
-            if (emc < 0L) {
-              PECore.LOGGER.error(
-                  "Ignoring EMC entry {} in {}: value must be non-negative",
-                  value.getKey(), resourceId);
-              continue;
-            }
-            String id = value.getKey();
-            boolean tag = id.startsWith("#");
-            Identifier identifier = Identifier.parse(tag ? id.substring(1) : id);
-            NSSItem item = tag ? NSSItem.createTag(identifier) : NSSItem.createItem(identifier);
-            PECore.debugLog("Adding datapack EMC value for {}: {}", id, emc);
-            item.forSelfAndEachElement(mapper, emc, IMappingCollector::setValueBefore);
           }
         } catch (IOException | RuntimeException exception) {
-          PECore.LOGGER.error("Could not load simple EMC file {}", resourceId, exception);
+          // Never commit the prefix of a damaged price file as if it were the whole file.
+          throw new IllegalStateException("Could not load EMC file " + resourceId, exception);
         }
       }
     }

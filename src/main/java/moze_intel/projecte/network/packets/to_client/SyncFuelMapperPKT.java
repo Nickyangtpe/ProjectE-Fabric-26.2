@@ -2,6 +2,7 @@ package moze_intel.projecte.network.packets.to_client;
 
 import moze_intel.projecte.PECore;
 import moze_intel.projecte.compat.network.handling.IPayloadContext;
+import moze_intel.projecte.compat.server.ServerLifecycleHooks;
 import moze_intel.projecte.emc.FuelMapper;
 import moze_intel.projecte.network.packets.IPEPacket;
 import net.minecraft.core.HolderSet;
@@ -26,6 +27,8 @@ public record SyncFuelMapperPKT(HolderSet<Item> items) implements IPEPacket {
 
   @Override
   public void handle(IPayloadContext context) {
-    FuelMapper.setFuelMap(this.items);
+    if (ServerLifecycleHooks.getCurrentServer() == null) {
+      FuelMapper.setFuelMap(this.items);
+    }
   }
 }

@@ -53,8 +53,8 @@ import org.jetbrains.annotations.ApiStatus.Internal;
 
 public final class EMCMappingHandler {
   private static final List<IEMCMapper<NormalizedSimpleStack, Long>> mappers = new ArrayList<>();
-  @Nullable private static Object2LongMap<ItemInfo> emc;
-  private static int loadIndex = -1;
+  @Nullable private static volatile Object2LongMap<ItemInfo> emc;
+  private static volatile int loadIndex = -1;
 
   public static void loadMappers() {
     if (mappers.isEmpty()) {
@@ -77,7 +77,7 @@ public final class EMCMappingHandler {
       ReloadableServerResources serverResources,
       RegistryAccess registryAccess,
       ResourceManager resourceManager) {
-    clearEmcMap();
+    // Build a replacement without making the live price table disappear during collection.
     SimpleGraphMapper<NormalizedSimpleStack, BigFraction, IValueArithmetic<BigFraction>> mapper =
         new SimpleGraphMapper<>(new HiddenBigFractionArithmetic());
     BigFractionToLongGenerator<NormalizedSimpleStack> valueGenerator =
@@ -108,6 +108,7 @@ public final class EMCMappingHandler {
     } else {
       SimpleGraphMapper.setLogFoundExploits(MappingConfig.logExploits());
       PECore.debugLog("Starting to collect Mappings...");
+      List<Exception> failures = new ArrayList<>();
 
       for (IEMCMapper<NormalizedSimpleStack, Long> emcMapper : mappers) {
         if (MappingConfig.isEnabled(emcMapper)) {
@@ -118,6 +119,7 @@ public final class EMCMappingHandler {
                 mappingCollector, serverResources, registryAccess, resourceManager);
             PECore.debugLog("Collected Mappings from " + emcMapper.getClass().getName());
           } catch (Exception e) {
+            failures.add(e);
             PECore.LOGGER.error(
                 LogUtils.FATAL_MARKER,
                 "Exception during Mapping Collection from Mapper {}. PLEASE REPORT THIS! EMC VALUES"
@@ -126,6 +128,14 @@ public final class EMCMappingHandler {
                 e);
           }
         }
+      }
+
+      if (!failures.isEmpty()) {
+        IllegalStateException failure =
+            new IllegalStateException(
+                "EMC mapping failed; retaining the previous complete price table");
+        failures.forEach(failure::addSuppressed);
+        throw failure;
       }
 
       DumpToFileCollector.currentGroupName = "NSSHelper";
@@ -151,18 +161,30 @@ public final class EMCMappingHandler {
     MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
     if (server != null) {
       for (ServerPlayer player : server.getPlayerList().getPlayers()) {
-        IKnowledgeProvider knowledge = PECapabilities.KNOWLEDGE_CAPABILITY.find(player, null);
-        if (knowledge != null) {
-          if (knowledge instanceof KnowledgeImpl impl && impl.pruneStaleKnowledge()) {
-            knowledge.sync(player);
-          } else if (player.containerMenu instanceof TransmutationContainer) {
-            PECore.packetHandler().updateTransmutationTargets(player);
+        try {
+          IKnowledgeProvider knowledge = PECapabilities.KNOWLEDGE_CAPABILITY.find(player, null);
+          if (knowledge != null) {
+            if (knowledge instanceof KnowledgeImpl impl && impl.pruneStaleKnowledge()) {
+              knowledge.sync(player);
+            } else if (player.containerMenu instanceof TransmutationContainer) {
+              PECore.packetHandler().updateTransmutationTargets(player);
+            }
           }
+        } catch (RuntimeException exception) {
+          PECore.LOGGER.error(
+              "Could not refresh knowledge for {} after EMC remapping",
+              player.getName().getString(),
+              exception);
         }
       }
     }
 
-    NeoForge.EVENT_BUS.post(new EMCRemapEvent());
+    try {
+      NeoForge.EVENT_BUS.post(new EMCRemapEvent());
+    } catch (RuntimeException exception) {
+      PECore.LOGGER.error(
+          "An EMC remap listener failed; the complete price table is retained", exception);
+    }
   }
 
   public static int getLoadIndex() {
@@ -187,36 +209,70 @@ public final class EMCMappingHandler {
   }
 
   public static int getEmcMapSize() {
-    return emc == null ? 0 : emc.size();
+    Object2LongMap<ItemInfo> values = emc;
+    return values == null ? 0 : values.size();
+  }
+
+  public static boolean isAvailable() {
+    return emc != null;
   }
 
   public static boolean hasEmcValue(@NotNull ItemInfo info) {
-    return emc != null && emc.containsKey(info);
+    Object2LongMap<ItemInfo> values = emc;
+    return values != null && values.containsKey(info);
   }
 
   public static @Range(from = 0L, to = Long.MAX_VALUE) long getStoredEmcValue(
       @NotNull ItemInfo info) {
-    return emc == null ? 0L : emc.getLong(info);
+    Object2LongMap<ItemInfo> values = emc;
+    return values == null ? 0L : values.getLong(info);
   }
 
-  public static void clearEmcMap() {
+  public static synchronized void clearEmcMap() {
     emc = null;
     DataComponentManager.updateCachedValues(null);
   }
 
   public static Set<ItemInfo> getMappedItems() {
-    return emc == null ? new HashSet<>() : new HashSet<>(emc.keySet());
+    Object2LongMap<ItemInfo> values = emc;
+    return values == null ? new HashSet<>() : new HashSet<>(values.keySet());
   }
 
   @Internal
-  public static int updateEmcValues(Object2LongMap<ItemInfo> data) {
-    emc = data;
-    DataComponentManager.updateCachedValues(emc::getLong);
-    return emc.size();
+  public static synchronized int updateEmcValues(Object2LongMap<ItemInfo> data) {
+    Object2LongOpenHashMap<ItemInfo> copy = new Object2LongOpenHashMap<>(data);
+    copy.defaultReturnValue(0L);
+    if (copy.values().longStream().anyMatch(value -> value < 0L)) {
+      throw new IllegalArgumentException("An EMC price table cannot contain negative values");
+    }
+    Object2LongMap<ItemInfo> previous = emc;
+    Object2LongMap<ItemInfo> replacement = Object2LongMaps.unmodifiable(copy);
+    emc = replacement;
+    try {
+      DataComponentManager.updateCachedValues(replacement::getLong);
+      // Publish processor cache updates to readers together with the completed snapshot.
+      emc = replacement;
+    } catch (RuntimeException exception) {
+      emc = previous;
+      try {
+        DataComponentManager.updateCachedValues(previous == null ? null : previous::getLong);
+        emc = previous;
+      } catch (RuntimeException restoreFailure) {
+        exception.addSuppressed(restoreFailure);
+      }
+      throw exception;
+    }
+    return copy.size();
   }
 
   public static SyncEmcPKT createPacketData() {
-    return new SyncEmcPKT(
-        emc == null ? Object2LongMaps.emptyMap() : Object2LongMaps.unmodifiable(emc));
+    Object2LongMap<ItemInfo> values = emc;
+    return new SyncEmcPKT(values == null ? Object2LongMaps.emptyMap() : values);
+  }
+
+  @Internal
+  public static void restoreEmcValues(Object2LongMap<ItemInfo> data) {
+    updateEmcValues(data);
+    fireEmcRemapEvent();
   }
 }

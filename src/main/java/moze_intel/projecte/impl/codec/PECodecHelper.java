@@ -22,9 +22,13 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.math.BigInteger;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -202,22 +206,63 @@ public class PECodecHelper implements IPECodecHelper {
 
   public static <TYPE> boolean writeToFile(
       Provider registries, Path path, Codec<TYPE> codec, TYPE value, String fileDescription) {
-    DataResult<JsonElement> result =
-        codec.encodeStart(registries.createSerializationContext(JsonOps.INSTANCE), value);
-    if (result.isError()) {
+    try {
+      DataResult<JsonElement> result =
+          codec.encodeStart(registries.createSerializationContext(JsonOps.INSTANCE), value);
+      if (result.isError()) {
+        PECore.LOGGER.error(
+            "Failed to convert {} to json: {}",
+            fileDescription,
+            result.error().orElseThrow().message());
+        return false;
+      }
+      return writeJsonToFile(path, result.getOrThrow(), fileDescription);
+    } catch (RuntimeException exception) {
       PECore.LOGGER.error(
-          "Failed to convert {} to json: {}",
+          "Failed to serialize {}. The existing file has not been changed",
           fileDescription,
-          ((Error) result.error().orElseThrow()).message());
+          exception);
       return false;
     }
+  }
 
-    try (Writer writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
-      PRETTY_GSON.toJson((JsonElement) result.getOrThrow(), writer);
+  /** Write and flush a complete document before atomically replacing the previous file. */
+  public static boolean writeJsonToFile(Path path, JsonElement json, String fileDescription) {
+    Path temporary = null;
+    try {
+      Path destination = path.toAbsolutePath();
+      Path parent = destination.getParent();
+      Files.createDirectories(parent);
+      temporary =
+          Files.createTempFile(parent, destination.getFileName().toString() + ".", ".tmp");
+      try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
+        PRETTY_GSON.toJson(json, writer);
+      }
+      try (FileChannel channel = FileChannel.open(temporary, StandardOpenOption.WRITE)) {
+        channel.force(true);
+      }
+      try {
+        Files.move(
+            temporary,
+            destination,
+            StandardCopyOption.REPLACE_EXISTING,
+            StandardCopyOption.ATOMIC_MOVE);
+      } catch (AtomicMoveNotSupportedException exception) {
+        Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING);
+      }
       return true;
-    } catch (IOException e) {
-      PECore.LOGGER.error("Failed to write {} file: {}", new Object[] {fileDescription, path, e});
+    } catch (IOException | RuntimeException exception) {
+      PECore.LOGGER.error("Failed to write {} file: {}", fileDescription, path, exception);
       return false;
+    } finally {
+      if (temporary != null) {
+        try {
+          Files.deleteIfExists(temporary);
+        } catch (IOException exception) {
+          PECore.LOGGER.warn(
+              "Could not remove temporary configuration file {}", temporary, exception);
+        }
+      }
     }
   }
 

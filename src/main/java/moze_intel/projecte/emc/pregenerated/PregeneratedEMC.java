@@ -33,7 +33,7 @@ public class PregeneratedEMC {
         : Optional.empty();
   }
 
-  public static void write(Provider registries, Path path, Object2LongMap<ItemInfo> map) {
-    PECodecHelper.writeToFile(registries, path, CODEC, map, "pregenerated emc");
+  public static boolean write(Provider registries, Path path, Object2LongMap<ItemInfo> map) {
+    return PECodecHelper.writeToFile(registries, path, CODEC, map, "pregenerated emc");
   }
 }
