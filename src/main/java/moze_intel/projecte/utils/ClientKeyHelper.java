@@ -4,9 +4,11 @@ import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableBiMap.Builder;
 import moze_intel.projecte.PECore;
 import moze_intel.projecte.compat.network.PacketDistributor;
+import moze_intel.projecte.network.packets.to_server.ChargeKeyPressPKT;
 import moze_intel.projecte.network.packets.to_server.KeyPressPKT;
 import moze_intel.projecte.utils.text.TextComponentUtil;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.KeyMapping.Category;
@@ -21,7 +23,7 @@ public class ClientKeyHelper {
     Builder<PEKeybind, KeyMapping> builder = ImmutableBiMap.builder();
     addKeyBinding(builder, PEKeybind.HELMET_TOGGLE, true, 88);
     addKeyBinding(builder, PEKeybind.BOOTS_TOGGLE, false, 88);
-    addKeyBinding(builder, PEKeybind.CHARGE, false, 86);
+    addKeyBinding(builder, PEKeybind.CHARGE, false, true, 86);
     addKeyBinding(builder, PEKeybind.EXTRA_FUNCTION, false, 67);
     addKeyBinding(builder, PEKeybind.FIRE_PROJECTILE, false, 82);
     addKeyBinding(builder, PEKeybind.MODE, false, 71);
@@ -34,9 +36,18 @@ public class ClientKeyHelper {
       PEKeybind keyBind,
       boolean requireShift,
       int keyCode) {
+    addKeyBinding(builder, keyBind, requireShift, false, keyCode);
+  }
+
+  private static void addKeyBinding(
+      Builder<PEKeybind, KeyMapping> builder,
+      PEKeybind keyBind,
+      boolean requireShift,
+      boolean allowShift,
+      int keyCode) {
     KeyMapping keyMapping =
         KeyMappingHelper.registerKeyMapping(
-            new ClientKeyHelper.PEKeyMapping(keyBind, requireShift, keyCode));
+            new ClientKeyHelper.PEKeyMapping(keyBind, requireShift, allowShift, keyCode));
     builder.put(keyBind, keyMapping);
   }
 
@@ -57,12 +68,14 @@ public class ClientKeyHelper {
   private static class PEKeyMapping extends KeyMapping {
     private final PEKeybind keybind;
     private final boolean requireShift;
+    private final boolean allowShift;
     private boolean lastState;
 
-    PEKeyMapping(PEKeybind keybind, boolean requireShift, int keyCode) {
+    PEKeyMapping(PEKeybind keybind, boolean requireShift, boolean allowShift, int keyCode) {
       super(keybind.getTranslationKey(), keyCode, ClientKeyHelper.PROJECTE_CATEGORY);
       this.keybind = keybind;
       this.requireShift = requireShift;
+      this.allowShift = allowShift;
     }
 
     public boolean isDown() {
@@ -73,7 +86,7 @@ public class ClientKeyHelper {
 
       long window = minecraft.getWindow().handle();
       boolean shiftDown = GLFW.glfwGetKey(window, 340) == 1 || GLFW.glfwGetKey(window, 344) == 1;
-      return shiftDown == this.requireShift && super.isDown();
+      return (this.allowShift || shiftDown == this.requireShift) && super.isDown();
     }
 
     public void setDown(boolean value) {
@@ -81,7 +94,16 @@ public class ClientKeyHelper {
       boolean state = this.isDown();
       if (state != this.lastState) {
         if (state) {
-          PacketDistributor.sendToServer(new KeyPressPKT(this.keybind));
+          Minecraft minecraft = Minecraft.getInstance();
+          if (this.keybind == PEKeybind.CHARGE
+              && ClientPlayNetworking.canSend(ChargeKeyPressPKT.TYPE)) {
+            boolean secondaryUse =
+                minecraft.options.keyShift.isDown()
+                    || minecraft.player != null && minecraft.player.isSecondaryUseActive();
+            PacketDistributor.sendToServer(new ChargeKeyPressPKT(secondaryUse));
+          } else {
+            PacketDistributor.sendToServer(new KeyPressPKT(this.keybind));
+          }
         }
 
         this.lastState = state;

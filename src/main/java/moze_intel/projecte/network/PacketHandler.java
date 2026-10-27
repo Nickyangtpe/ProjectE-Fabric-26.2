@@ -27,6 +27,7 @@ import moze_intel.projecte.network.packets.to_client.knowledge.KnowledgeSyncEmcP
 import moze_intel.projecte.network.packets.to_client.knowledge.KnowledgeSyncInputsAndLocksPKT;
 import moze_intel.projecte.network.packets.to_client.knowledge.KnowledgeSyncPKT;
 import moze_intel.projecte.network.packets.to_server.KeyPressPKT;
+import moze_intel.projecte.network.packets.to_server.ChargeKeyPressPKT;
 import moze_intel.projecte.network.packets.to_server.RequestEmcSyncPKT;
 import moze_intel.projecte.network.packets.to_server.SearchUpdatePKT;
 import moze_intel.projecte.network.packets.to_server.UpdateGemModePKT;
@@ -56,6 +57,7 @@ public final class PacketHandler {
   }
 
   private void registerClientToServer(PacketHandler.PacketRegistrar registrar) {
+    registrar.play(ChargeKeyPressPKT.TYPE, ChargeKeyPressPKT.STREAM_CODEC);
     registrar.play(KeyPressPKT.TYPE, KeyPressPKT.STREAM_CODEC);
     registrar.play(RequestEmcSyncPKT.TYPE, RequestEmcSyncPKT.STREAM_CODEC);
     this.activateArchangel =

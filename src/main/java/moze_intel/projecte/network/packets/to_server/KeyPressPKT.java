@@ -63,6 +63,8 @@ public record KeyPressPKT(PEKeybind key) implements IPEPacket {
         if (!boots.isEmpty() && boots.is(PEItems.GEM_BOOTS.get())) {
           GemFeet.toggleStepAssist(boots, player);
         }
+      } else if (this.key == PEKeybind.CHARGE) {
+        handleCharge(player, player.isSecondaryUseActive());
       } else {
         if (this.key == PEKeybind.TRANSMUTATION_TABLET) {
           if (!(player instanceof ServerPlayer)) {
@@ -88,27 +90,6 @@ public record KeyPressPKT(PEKeybind key) implements IPEPacket {
         for (InteractionHand hand : InteractionHand.values()) {
           ItemStack stack = player.getItemInHand(hand);
           switch (this.key) {
-            case CHARGE:
-              if (tryPerformCapability(
-                  player,
-                  stack,
-                  hand,
-                  PECapabilities.CHARGE_ITEM_CAPABILITY,
-                  IItemCharge::changeCharge)) {
-                return;
-              }
-
-              if (hand == InteractionHand.MAIN_HAND
-                  && isSafe(stack)
-                  && GemArmorBase.hasAnyPiece(player)) {
-                boolean active =
-                    !(Boolean) player.getAttachedOrElse(PEAttachmentTypes.GEM_ARMOR_STATE, false);
-                player.setAttached(PEAttachmentTypes.GEM_ARMOR_STATE, active);
-                ILangEntry langEntry = active ? PELang.GEM_ACTIVATE : PELang.GEM_DEACTIVATE;
-                PlayerHelper.sendOverlayMessage(player, langEntry.translate());
-                return;
-              }
-              break;
             case EXTRA_FUNCTION:
               if (tryPerformCapability(
                   player,
@@ -166,6 +147,25 @@ public record KeyPressPKT(PEKeybind key) implements IPEPacket {
               }
           }
         }
+      }
+    }
+  }
+
+  static void handleCharge(Player player, boolean decreaseCharge) {
+    for (InteractionHand hand : InteractionHand.values()) {
+      ItemStack stack = player.getItemInHand(hand);
+      IItemCharge chargeItem = PECapabilities.CHARGE_ITEM_CAPABILITY.find(stack, null);
+      if (chargeItem != null && chargeItem.changeCharge(player, stack, hand, decreaseCharge)) {
+        return;
+      }
+
+      if (hand == InteractionHand.MAIN_HAND && isSafe(stack) && GemArmorBase.hasAnyPiece(player)) {
+        boolean active =
+            !(Boolean) player.getAttachedOrElse(PEAttachmentTypes.GEM_ARMOR_STATE, false);
+        player.setAttached(PEAttachmentTypes.GEM_ARMOR_STATE, active);
+        ILangEntry langEntry = active ? PELang.GEM_ACTIVATE : PELang.GEM_DEACTIVATE;
+        PlayerHelper.sendOverlayMessage(player, langEntry.translate());
+        return;
       }
     }
   }

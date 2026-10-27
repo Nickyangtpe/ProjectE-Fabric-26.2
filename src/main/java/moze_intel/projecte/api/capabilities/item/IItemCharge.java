@@ -26,9 +26,17 @@ public interface IItemCharge {
 
   default boolean changeCharge(
       @NotNull Player player, @NotNull ItemStack stack, @Nullable InteractionHand hand) {
+    return this.changeCharge(player, stack, hand, player.isSecondaryUseActive());
+  }
+
+  default boolean changeCharge(
+      @NotNull Player player,
+      @NotNull ItemStack stack,
+      @Nullable InteractionHand hand,
+      boolean decreaseCharge) {
     int currentCharge = this.getCharge(stack);
     int numCharges = this.getNumCharges(stack);
-    if (player.isSecondaryUseActive()) {
+    if (decreaseCharge) {
       if (currentCharge > 0) {
         player
             .level()
